@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 
 from densities import log_mvn_dist, log_multimodal, log_volcano
 
-def plot_distribution_heatmat(ax, dist: Array, title: str) -> None: 
+
+def plot_distribution_heatmat(ax, dist: Array, title: str) -> None:
     """Plot a heatmap of the given distribution on the provided axis.
 
     Args:
@@ -12,26 +13,26 @@ def plot_distribution_heatmat(ax, dist: Array, title: str) -> None:
         dist: A 2D array representing the distribution values.
         title: The title for the plot.
     """
-    heatmap = ax.imshow(dist, origin='lower', cmap='viridis', extent=(-5, 5, -5, 5))
+    heatmap = ax.imshow(dist, origin="lower", cmap="viridis", extent=(-5, 5, -5, 5))
 
     fontsize_title = 20
     fontsize_labels = 18
     fontsize_ticks = 18
 
     ax.set_title(title, fontsize=fontsize_title)
-    ax.set_xlabel('X-axis', fontsize=fontsize_labels)
-    ax.set_ylabel('Y-axis', fontsize=fontsize_labels)
+    ax.set_xlabel("X-axis", fontsize=fontsize_labels)
+    ax.set_ylabel("Y-axis", fontsize=fontsize_labels)
 
     ax.set_xticks(jnp.arange(-5, 6, 2))
     ax.set_yticks(jnp.arange(-5, 6, 2))
-    ax.tick_params(axis='both', which='major', labelsize=fontsize_ticks)
+    ax.tick_params(axis="both", which="major", labelsize=fontsize_ticks)
 
-    
     cbar = plt.colorbar(heatmap, ax=ax, pad=0.02)
     # cbar.set_label('Probability Density', fontsize=14)
     cbar.ax.tick_params(labelsize=fontsize_ticks)
-    
+
     plt.tight_layout()
+
 
 if __name__ == "__main__":
     # Create grid [-5, 5] x [-5, 5] with 0.1 spacing

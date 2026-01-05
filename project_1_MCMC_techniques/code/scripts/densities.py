@@ -2,7 +2,7 @@ import jax
 from jax import vmap, jit
 import jax.numpy as jnp
 
-@jit
+
 def log_mvn(x, mean, cov):
     """Log density of multivariate normal distribution.
 
@@ -21,7 +21,7 @@ def log_mvn(x, mean, cov):
     log_norm_const = -0.5 * (d * jnp.log(2 * jnp.pi) + jnp.log(jnp.linalg.det(cov)))
     return log_norm_const + exponent
 
-@jit
+
 def log_mvn_dist(x):
     """Log density of the correlated bivariate normal distribution.
 
@@ -35,7 +35,7 @@ def log_mvn_dist(x):
     cov = jnp.array([[1.0, 0.9], [0.9, 1.0]])
     return log_mvn(x, mean, cov)
 
-@jit
+
 def log_multimodal(x):
     """Log density of a mixture of three Gaussian components.
 
@@ -56,16 +56,15 @@ def log_multimodal(x):
     covs = jnp.array([jnp.eye(2), jnp.eye(2), 0.8 * jnp.eye(2)])
 
     # Compute log density for each component
-    log_mvn_components = vmap(
-        lambda mean, cov: log_mvn(x, mean, cov),
-        in_axes=(0, 0)
-    )(means, covs)  # shape: (3,)
+    log_mvn_components = vmap(lambda mean, cov: log_mvn(x, mean, cov), in_axes=(0, 0))(
+        means, covs
+    )  # shape: (3,)
 
     # Log-sum-exp trick: log(sum w_i * exp(log_p_i)) = logsumexp(log(w_i) + log_p_i)
     log_w = jnp.log(w)
     return jax.scipy.special.logsumexp(log_w + log_mvn_components)
 
-@jit
+
 def log_volcano(x):
     """Log density of the volcano distribution.
 
