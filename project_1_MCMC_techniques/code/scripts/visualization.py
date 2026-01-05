@@ -1,8 +1,8 @@
 import jax.numpy as jnp
-from jax import Array
+from jax import Array, vmap
 import matplotlib.pyplot as plt
 
-from densities import log_mvn_dist, multimodal, log_volcano
+from densities import log_mvn_dist, log_multimodal, log_volcano
 
 def plot_distribution_heatmat(ax, dist: Array, title: str) -> None: 
     """Plot a heatmap of the given distribution on the provided axis.
@@ -39,17 +39,19 @@ if __name__ == "__main__":
     X, Y = jnp.meshgrid(x, x)
     grid_points = jnp.column_stack([X.ravel(), Y.ravel()])
 
-    # Compute the distributions values
-    Z_MVN = jnp.exp(log_mvn_dist(grid_points).reshape(X.shape))
-    Z_multimodal = multimodal(grid_points).reshape(X.shape)
-    Z_volcano = jnp.exp(log_volcano(grid_points).reshape(X.shape))
+    # Compute the distributions values using vmap for batching
+    # vmap over the first axis (each row is a single point)
+    # All functions return log densities, so we exponentiate for visualization
+    Z_MVN = jnp.exp(vmap(log_mvn_dist)(grid_points)).reshape(X.shape)
+    Z_multimodal = jnp.exp(vmap(log_multimodal)(grid_points)).reshape(X.shape)
+    Z_volcano = jnp.exp(vmap(log_volcano)(grid_points)).reshape(X.shape)
 
     # Plotting
     fig, axs = plt.subplots(1, 3, figsize=(22, 6))
     plot_distribution_heatmat(axs[0], Z_MVN, "Multivariate Normal")
     plot_distribution_heatmat(axs[1], Z_multimodal, "Multimodal Distribution")
     plot_distribution_heatmat(axs[2], Z_volcano, "Volcano Distribution")
-    
+
     # Save the figure
     plt.savefig("output/distributions.svg")
     plt.close()

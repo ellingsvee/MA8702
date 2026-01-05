@@ -59,15 +59,13 @@ def run_tuning_experiment(logdensity_fn: Callable, filename: str) -> None:
     plt.close()
 
 if __name__ == "__main__":
-    from scripts.densities import log_mvn_dist, multimodal, log_volcano
+    from scripts.densities import log_mvn_dist, log_multimodal, log_volcano
 
     print("Running tuning experiment for Multivariate Normal distribution...")
     run_tuning_experiment(log_mvn_dist, "output/rwmh_tuning_mvn.svg")
 
-    # print("Running tuning experiment for Multimodal distribution...")
-    # def log_multimodal(x: Array) -> Array:
-    #     return jnp.log(multimodal(x) + 1e-12)  # add small constant to avoid log(0)
-    # run_tuning_experiment(log_multimodal, "output/rwmh_tuning_multimodal.svg")
+    print("Running tuning experiment for Multimodal distribution...")
+    run_tuning_experiment(log_multimodal, "output/rwmh_tuning_multimodal.svg")
 
     print("Running tuning experiment for Volcano distribution...")
     run_tuning_experiment(log_volcano, "output/rwmh_tuning_volcano.svg")
