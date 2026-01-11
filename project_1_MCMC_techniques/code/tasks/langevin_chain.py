@@ -8,9 +8,11 @@ from scripts.densities import logdensity_multimodal, logdensity_mvn, logdensity_
 OUTPUT_DIR = Path("output/langevin/")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-print("Running tuning experiment for Multivariate Normal distribution...")
-run_tuning_experiment(init, build_kernel, logdensity_mvn, OUTPUT_DIR / "tuning_mvn.svg")
-print("Running tuning experiment for Multimodal distribution...")
-run_tuning_experiment(init, build_kernel, logdensity_multimodal, OUTPUT_DIR / "tuning_multimodal.svg")
-print("Running tuning experiment for Volcano distribution...")
-run_tuning_experiment(init, build_kernel, logdensity_volcano, OUTPUT_DIR / "tuning_volcano.svg")
+
+print("Running tuning experiment for Langevin Monte Carlo...")
+print("- Multivariate Normal distribution...")
+run_tuning_experiment(init, build_kernel, logdensity_mvn, OUTPUT_DIR / "tuning_mvn")
+print("- Multimodal distribution...")
+run_tuning_experiment(init, build_kernel, logdensity_multimodal, OUTPUT_DIR / "tuning_multimodal")
+print("- Volcano distribution...")
+run_tuning_experiment(init, build_kernel, logdensity_volcano, OUTPUT_DIR / "tuning_volcano")
