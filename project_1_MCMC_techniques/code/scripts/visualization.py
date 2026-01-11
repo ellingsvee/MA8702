@@ -1,58 +1,71 @@
-import jax.numpy as jnp
-from jax import Array, vmap
 import matplotlib.pyplot as plt
+import jax.numpy as jnp
 
-from densities import log_mvn_dist, log_multimodal, log_volcano
+from utils import autocorr
 
 
-def plot_distribution_heatmat(ax, dist: Array, title: str) -> None:
-    """Plot a heatmap of the given distribution on the provided axis.
 
-    Args:
-        ax: The matplotlib axis to plot on.
-        dist: A 2D array representing the distribution values.
-        title: The title for the plot.
-    """
-    heatmap = ax.imshow(dist, origin="lower", cmap="viridis", extent=(-5, 5, -5, 5))
+def plot_trace(ax, positions, label):
+    ax.plot(positions)
+    ax.set_xlabel("Samples")
+    ax.set_ylabel(label)
+
+def plot_autocorr(ax, positions, label):
+    # positions = states.position
+
+    acf = autocorr(positions)
+    ax.bar(range(len(acf)), acf, width=1.0)
+    ax.set_ylabel("ACF")
+    ax.set_xlabel("Lags")
+    # ax.set_title(f"Autocorrelation of {label}")
+    ax.set_ylim([-0.2, 1.0])
+
+def plot_traces_and_acf(states, title, output):
+    positions = states.position
+
+    fig, axes = plt.subplots(ncols=3, figsize=(18, 5))
+
+    plot_trace(axes[0], positions[:, 0], "x")
+    plot_trace(axes[1], positions[:, 1], "y")
+    plot_autocorr(axes[2], positions[:, 0], "x")
+
+    axes[1].set_title(title)
+
+    plt.tight_layout()
+    plt.savefig(output)
+    plt.close()
+
+
+
+def plot_scatter(states, title, output):
+    positions = states.position
+
+    fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+
 
     fontsize_title = 20
     fontsize_labels = 18
     fontsize_ticks = 18
 
-    ax.set_title(title, fontsize=fontsize_title)
-    ax.set_xlabel("X-axis", fontsize=fontsize_labels)
-    ax.set_ylabel("Y-axis", fontsize=fontsize_labels)
+    # 2D Scatter plot
+    ax.scatter(positions[:, 0], positions[:, 1], alpha=0.5)
+    ax.set_xlabel("x", fontsize=fontsize_labels)
+    ax.set_ylabel("y", fontsize=fontsize_labels)
+
+    # Set extent to be [-5, 5] in both axes
+    ax.set_xlim(-5, 5)
+    ax.set_ylim(-5, 5)
+    ax.autoscale(False)
 
     ax.set_xticks(jnp.arange(-5, 6, 2))
     ax.set_yticks(jnp.arange(-5, 6, 2))
     ax.tick_params(axis="both", which="major", labelsize=fontsize_ticks)
 
-    cbar = plt.colorbar(heatmap, ax=ax, pad=0.02)
-    # cbar.set_label('Probability Density', fontsize=14)
-    cbar.ax.tick_params(labelsize=fontsize_ticks)
+    ax.set_title(title, fontsize=fontsize_title)
 
+    # ax.axis('equal')
+    ax.grid(True)
+    
     plt.tight_layout()
-
-
-if __name__ == "__main__":
-    # Create grid [-5, 5] x [-5, 5] with 0.1 spacing
-    x = jnp.arange(-5, 5.1, 0.1)
-    X, Y = jnp.meshgrid(x, x)
-    grid_points = jnp.column_stack([X.ravel(), Y.ravel()])
-
-    # Compute the distributions values using vmap for batching
-    # vmap over the first axis (each row is a single point)
-    # All functions return log densities, so we exponentiate for visualization
-    Z_MVN = jnp.exp(vmap(log_mvn_dist)(grid_points)).reshape(X.shape)
-    Z_multimodal = jnp.exp(vmap(log_multimodal)(grid_points)).reshape(X.shape)
-    Z_volcano = jnp.exp(vmap(log_volcano)(grid_points)).reshape(X.shape)
-
-    # Plotting
-    fig, axs = plt.subplots(1, 3, figsize=(22, 6))
-    plot_distribution_heatmat(axs[0], Z_MVN, "Multivariate Normal")
-    plot_distribution_heatmat(axs[1], Z_multimodal, "Multimodal Distribution")
-    plot_distribution_heatmat(axs[2], Z_volcano, "Volcano Distribution")
-
-    # Save the figure
-    plt.savefig("output/distributions.svg")
+    plt.savefig(output)
     plt.close()

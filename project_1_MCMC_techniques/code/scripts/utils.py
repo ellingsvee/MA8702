@@ -1,16 +1,5 @@
 import jax.numpy as jnp
 
-# def autocorr(x, max_lag=100):
-#     """Compute autocorrelation."""
-#     x = np.array(x) - np.mean(x)
-#     c0 = np.dot(x, x) / len(x)
-#     acf = [1.0]
-#     for k in range(1, max_lag + 1):
-#         c_k = np.dot(x[:-k], x[k:]) / len(x)
-#         acf.append(c_k / c0)
-#     return np.array(acf)
-
-
 def autocorr(x, max_lag=100, normalize=True):
     x = jnp.asarray(x)
     x = x - jnp.mean(x)

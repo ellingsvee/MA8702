@@ -6,7 +6,7 @@ from typing import Callable
 import matplotlib.pyplot as plt
 
 from scripts.utils import autocorr
-from scripts.mcmc import run_chain
+from scripts.inference import inference_loop
 
 def run_tuning_experiment(init_fn: Callable, build_kernel_fn: Callable, logdensity_fn: Callable, filename: PathLike[str]) -> None:
     """Run RWMH tuning experiment with different proposal stddev (sigma) values
@@ -28,13 +28,14 @@ def run_tuning_experiment(init_fn: Callable, build_kernel_fn: Callable, logdensi
 
         # Run chain
         key, subkey = jax.random.split(key)
-        samples, _, accept = run_chain(
+        samples, infos = inference_loop(
             subkey, kernel, initial_state, num_steps
         )
 
+
         # Remove burnin
-        samples = samples[burnin:]
-        accept = accept[burnin:]
+        positions = samples.position[burnin:]
+        accept = infos.is_accepted[burnin:]
 
         # Acceptance rate
         acc_rate = float(jnp.mean(accept))
@@ -42,15 +43,15 @@ def run_tuning_experiment(init_fn: Callable, build_kernel_fn: Callable, logdensi
         row_title = rf"$\sigma = {sigma}$, Accept rate: {acc_rate:.3f}"
 
         # Trace plots
-        axes[i, 0].plot(samples[:, 0], linewidth=0.5)
+        axes[i, 0].plot(positions[:, 0], linewidth=0.5)
         axes[i, 0].set_ylabel("Trace x")
 
-        axes[i, 1].plot(samples[:, 1], linewidth=0.5)
+        axes[i, 1].plot(positions[:, 1], linewidth=0.5)
         axes[i, 1].set_ylabel("Trace y")
         axes[i, 1].set_title(row_title)
 
         # Autocorrelation
-        acf = autocorr(samples[:, 0])
+        acf = autocorr(positions[:, 0])
         axes[i, 2].bar(range(len(acf)), acf, width=1.0)
         axes[i, 2].set_ylabel("ACF")
         axes[i, 2].set_ylim([-0.2, 1.0])
