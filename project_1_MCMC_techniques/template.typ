@@ -53,6 +53,8 @@
   bibliography: none,
   // Whether to start a chapter on a new page.
   chapter-pagebreak: true,
+  // Whether to start bibliotraphy on a new page.
+  bibliography-pagebreak: true,
   // Whether to display a maroon circle next to external links.
   external-link-circle: true,
   // Raw text customization
@@ -138,25 +140,10 @@
       ),
     )
   } else {
-    // A more minimalist title which is not on its own page.
-    //   block(width: 100%)[
-    //   #text(2em, weight: "bold")[#title]
-
-    //   #text(1.1em)[#author]
-
-    //   #if date != none {
-    //     linebreak()
-    //     text(0.95em, date.display(date-format))
-    //   }
-
-    //   #if abstract != none {
-    //     v(1.5em)
-    //     block(width: 100%)[
-    //       #par(leading: 0.78em, justify: true, linebreaks: "optimized", abstract)
-    //     ]
-    //   }
-
-    //   #v(2em)
+    // align(center)[
+    //   #text(24pt, weight: "bold")[#title] \
+    //   #text(1.1em)[#author] \
+    //   #text(1.1em)[#abstract] \
     // ]
   }
 
@@ -239,8 +226,9 @@
   show raw.where(block: true): block.with(
     fill: fill-color.darken(5%),
     inset: (x: 3pt, y: 2pt),
-    outset: (y: 3pt),
+    outset: (x: 0pt, y: 3pt),
     radius: 2pt,
+    width: 100%,
   )
 
   // Break large tables across pages.
@@ -294,7 +282,9 @@
 
   // Display bibliography.
   if bibliography != none {
-    pagebreak()
+    if bibliography-pagebreak {
+      pagebreak()
+    }
     show std-bibliography: set text(0.85em)
     // Use default paragraph properties for bibliography.
     show std-bibliography: set par(leading: 0.65em, justify: false, linebreaks: auto)
