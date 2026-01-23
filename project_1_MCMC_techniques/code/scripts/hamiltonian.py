@@ -1,7 +1,8 @@
+from typing import Callable, NamedTuple
+
 import jax
-from jax import Array
 import jax.numpy as jnp
-from typing import NamedTuple, Callable
+from jax import Array
 
 
 class HMCState(NamedTuple):
@@ -9,14 +10,23 @@ class HMCState(NamedTuple):
     logdensity: Array
     logdensity_grad: Array
 
+
 class HMCInfo(NamedTuple):
     acceptance_rate: Array
     is_accepted: Array
     proposal: HMCState
 
+
 def init(position: Array, logdensity_fn: Callable) -> HMCState:
     logdensity, logdensity_grad = jax.value_and_grad(logdensity_fn)(position)
     return HMCState(position, logdensity, logdensity_grad)
+
+
+def hamiltonian(logdensity, momentum):
+    kinetic = 0.5 * jnp.sum(momentum**2)
+    potential = -logdensity
+    return potential + kinetic
+
 
 def leapfrog(
     position: Array,
@@ -26,21 +36,21 @@ def leapfrog(
     num_steps: int,
 ):
     def body_fn(_, state):
-        q, p, logp, grad = state
+        x, p, logp, grad = state
 
         # Half step momentum
         p = p + 0.5 * step_size * grad
 
         # Full step position
-        q = q + step_size * p
+        x = x + step_size * p
 
         # Refresh gradient
-        logp, grad = jax.value_and_grad(logdensity_fn)(q)
+        logp, grad = jax.value_and_grad(logdensity_fn)(x)
 
         # Half step momentum
         p = p + 0.5 * step_size * grad
 
-        return q, p, logp, grad
+        return x, p, logp, grad
 
     logp0, grad0 = jax.value_and_grad(logdensity_fn)(position)
 
@@ -53,33 +63,25 @@ def leapfrog(
 
     return position, momentum, logp, grad
 
-def hamiltonian(logdensity, momentum):
-    kinetic = 0.5 * jnp.sum(momentum ** 2)
-    potential = -logdensity
-    return potential + kinetic
 
 def build_kernel(
     logdensity_fn: Callable,
     step_size: float,
     num_steps: int = 10,
 ) -> Callable:
-
     def kernel(
         rng_key: Array,
         state: HMCState,
     ) -> tuple[HMCState, HMCInfo]:
-
         key_momentum, key_accept = jax.random.split(rng_key)
 
         # Sample momentum
-        momentum0 = jax.random.normal(
-            key_momentum, shape=state.position.shape
-        )
+        momentum0 = jax.random.normal(key_momentum, shape=state.position.shape)
 
-        # Initial Hamiltonian
-        H0 = hamiltonian(state.logdensity, momentum0)
+        # Current Hamiltonian
+        H = hamiltonian(state.logdensity, momentum0)
 
-        # Leapfrog proposal
+        # Propose new state via leapfrog integrator
         q_prop, p_prop, logp_prop, grad_prop = leapfrog(
             state.position,
             momentum0,
@@ -88,15 +90,14 @@ def build_kernel(
             num_steps,
         )
 
-        # Negate momentum for reversibility
-        p_prop = -p_prop
+        # Proposed Hamiltonian
+        H_prop = hamiltonian(logp_prop, p_prop)
 
-        # Final Hamiltonian
-        H1 = hamiltonian(logp_prop, p_prop)
-
-        log_accept_ratio = -(H1 - H0)
+        # Acceptance probability
+        log_accept_ratio = H - H_prop
         acceptance_prob = jnp.minimum(1.0, jnp.exp(log_accept_ratio))
 
+        # Accept or reject
         u = jax.random.uniform(key_accept)
         accepted = u < acceptance_prob
 
@@ -115,4 +116,3 @@ def build_kernel(
         return new_state, info
 
     return kernel
-

@@ -1,5 +1,6 @@
 import jax.numpy as jnp
 
+
 def autocorr(x, max_lag=100, normalize=True):
     x = jnp.asarray(x)
     x = x - jnp.mean(x)

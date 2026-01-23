@@ -8,13 +8,16 @@ class RWState(NamedTuple):
     position: Array
     logdensity: Array
 
+
 class RWInfo(NamedTuple):
     acceptance_rate: Array
     is_accepted: Array
     proposal: RWState
 
+
 def init(position: Array, logdensity_fn: Callable) -> RWState:
     return RWState(position, logdensity_fn(position))
+
 
 def build_kernel(logdensity_fn: Callable, step_size: float) -> Callable:
     """Build a Random Walk Rosenbluth-Metropolis-Hastings kernel
@@ -27,7 +30,8 @@ def build_kernel(logdensity_fn: Callable, step_size: float) -> Callable:
     """
 
     def kernel(
-        rng_key: Array, state: RWState,
+        rng_key: Array,
+        state: RWState,
     ) -> tuple[RWState, RWInfo]:
         # Generate proposal: x' = x + step_size * N(0, I)
         key_proposal, key_accept = jax.random.split(rng_key)
@@ -57,4 +61,3 @@ def build_kernel(logdensity_fn: Callable, step_size: float) -> Callable:
         return new_state, info
 
     return kernel
-

@@ -4,11 +4,11 @@ import jax.numpy as jnp
 from utils import autocorr
 
 
-
 def plot_trace(ax, positions, label):
     ax.plot(positions)
     ax.set_xlabel("Samples")
     ax.set_ylabel(label)
+
 
 def plot_autocorr(ax, positions, label):
     # positions = states.position
@@ -19,6 +19,7 @@ def plot_autocorr(ax, positions, label):
     ax.set_xlabel("Lags")
     # ax.set_title(f"Autocorrelation of {label}")
     ax.set_ylim([-0.2, 1.0])
+
 
 def plot_traces_and_acf(states, title, output):
     positions = states.position
@@ -36,12 +37,10 @@ def plot_traces_and_acf(states, title, output):
     plt.close()
 
 
-
 def plot_scatter(states, title, output):
     positions = states.position
 
     fig, ax = plt.subplots(1, 1, figsize=(8, 8))
-
 
     fontsize_title = 20
     fontsize_labels = 18
@@ -65,7 +64,7 @@ def plot_scatter(states, title, output):
 
     # ax.axis('equal')
     ax.grid(True)
-    
+
     plt.tight_layout()
     plt.savefig(output)
     plt.close()

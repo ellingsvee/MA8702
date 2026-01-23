@@ -17,9 +17,10 @@ def logdensity_multimodal(x):
     covs = jnp.array([jnp.eye(2), jnp.eye(2), 0.8 * jnp.eye(2)])
 
     # Compute log density for each component
-    log_components = jax.vmap(lambda mean, cov: stats.multivariate_normal.logpdf(x, mean=mean, cov=cov), in_axes=(0, 0))(
-        means, covs
-    )
+    log_components = jax.vmap(
+        lambda mean, cov: stats.multivariate_normal.logpdf(x, mean=mean, cov=cov),
+        in_axes=(0, 0),
+    )(means, covs)
 
     # Log-sum-exp trick: log(sum w_i * exp(log_p_i)) = logsumexp(log(w_i) + log_p_i)
     log_w = jnp.log(w)

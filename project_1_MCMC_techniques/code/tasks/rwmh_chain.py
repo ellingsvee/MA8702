@@ -13,6 +13,10 @@ print("Running tuning experiment for Random Walk Metropolis-Hastings...")
 print("- Multivariate Normal distribution...")
 run_tuning_experiment(init, build_kernel, logdensity_mvn, OUTPUT_DIR / "tuning_mvn")
 print("- Multimodal distribution...")
-run_tuning_experiment(init, build_kernel, logdensity_multimodal, OUTPUT_DIR / "tuning_multimodal")
+run_tuning_experiment(
+    init, build_kernel, logdensity_multimodal, OUTPUT_DIR / "tuning_multimodal"
+)
 print("- Volcano distribution...")
-run_tuning_experiment(init, build_kernel, logdensity_volcano, OUTPUT_DIR / "tuning_volcano")
+run_tuning_experiment(
+    init, build_kernel, logdensity_volcano, OUTPUT_DIR / "tuning_volcano"
+)
