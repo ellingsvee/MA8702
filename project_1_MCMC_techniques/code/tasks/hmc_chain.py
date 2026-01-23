@@ -10,7 +10,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 print("Running tuning experiment for Hamiltonian Monte Carlo...")
 
-step_sizes = [0.01, 0.05, 0.1, 0.2]
+step_sizes = [0.01, 0.1, 0.25, 0.5]
 
 print("- Multivariate Normal distribution...")
 run_tuning_experiment(

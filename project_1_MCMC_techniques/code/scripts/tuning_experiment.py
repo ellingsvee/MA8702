@@ -5,8 +5,8 @@ import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 
+from scripts.autocorr import autocorr
 from scripts.inference import inference_loop
-from scripts.utils import autocorr
 
 
 def run_tuning_experiment(
@@ -71,7 +71,7 @@ def run_tuning_experiment(
         axes_scatter[i].grid()
 
     # Save the two figure separately
-    plt.tight_layout()
+    fig.tight_layout()
     fig.savefig(f"{filename}.svg")
     plt.close(fig)
 
