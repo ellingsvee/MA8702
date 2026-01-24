@@ -12,7 +12,7 @@
 
 
 #show: ilm.with(
-  title: [MCMC techniques],
+  title: [Metropolis-Hastings for bivariate densities],
   author: "Prosjekt 1 in MA8702. Written by Elling Svee.",
   // date: datetime(year: 2026, month: 01, day: 18),
   date: datetime.today(),
@@ -26,23 +26,23 @@
   fancy-cover-page: true,
 )
 
-= Metropolis-Hastings for bivariate densities
+= Example densities
 
 In this project we implement three variations of the Metropolis-Hastings (MH). For evaluating the algorithms we consider three bivariate target densities for $bold(x) = (x, y)^"T"$:
 
-/ Gaussian distribution: The first is a bivariate Gaussian distribution with correlation. Its probability density function (PDF) is
++ *Gaussian distribution:* The first is a bivariate Gaussian distribution with correlation. Its probability density function (PDF) is
   $
     pi(bold(x)) = frac(1, 2 pi det(bold(upright(Sigma)))^(1/2)) exp lr((-frac(1, 2)bold(x)^"T" bold(upright(Sigma))^(-1)bold(x)))
   $
   where $bold(upright(Sigma))$ has $1$ on the diagonal and $0.9$ on the off diagonals.
 
-/ Multimodal density: The second is a multimodal density constructed as a mixture of Gaussian densities. Its PDF is
++ *Multimodal density:* The second is a multimodal density constructed as a mixture of Gaussian densities. Its PDF is
   $
     pi(bold(x)) = sum_(i=1)^(3) w_i frac(1, 2 pi det(bold(upright(Sigma))_i)^(1/2)) exp lr((-frac(1, 2)(bold(x)-bold(mu)_i)^"T" bold(upright(Sigma))_(i)^(-1)(bold(x) - bold(mu)_i))),
   $
   with $w_i = 1 \/3$ for $i=1, 2, 3$. The means are $bold(mu)_1 = (−1.5, −1.5)^("T")$, $bold(mu)_2 = (1.5, 1.5)^("T")$ and $bold(mu)_3 = (-2, 2)^("T")$, and the covariance matrices all have correlation $0$ and variances $sigma_(1)^(2) = sigma_(2)^(2) = 1$ and $sigma_3^(2) = 0.8$.
 
-/ Volcano density: Lastly we consider a volcano-shaped density with PDF
++ *Volcano density:* Lastly we consider a volcano-shaped density with PDF
   $
     pi(bold(x)) prop frac(1, 2 pi) exp lr((-1/2 bold(x)^("T") bold(x)))(bold(x)^("T") bold(x) + 0.25)
   $
@@ -56,12 +56,12 @@ In this project we implement three variations of the Metropolis-Hastings (MH). F
 
 = Theoretical background for Metropolis-Hastings
 
-The Metropolis-Hastings (MH) algorithm is a Markov chain Monte Carlo (MCMC) method for sampling from a target distribution $pi(bold(x))$ known only up to a normalizing constant. Given a current state $bold(x)^((t))$, the algorithm proceeds as follows:
+The MH algorithm is a Markov chain Monte Carlo (MCMC) method for sampling from a target distribution $pi(bold(x))$ known only up to a normalizing constant. Given a current state $bold(x)^((t))$, the algorithm proceeds as follows:
 
-+ *Propose* a candidate $bold(x)'$ from a proposal distribution $q(bold(x)' | bold(x)^((t)))$.
++ *Propose* a candidate $bold(x)'$ from a proposal distribution $q(bold(x)'|bold(x)^((t)))$.
 + *Compute* the acceptance probability
   $
-    alpha(bold(x)^((t)), bold(x)') = min lr((1, frac(pi(bold(x)') q(bold(x)^((t)) | bold(x)'), pi(bold(x)^((t))) q(bold(x)' | bold(x)^((t)))))).
+    alpha(bold(x)^((t)), bold(x)') = min lr((1, frac(pi(bold(x)') q(bold(x)^((t))|bold(x)'), pi(bold(x)^((t))) q(bold(x)'|bold(x)^((t)))))).
   $
 + *Accept* the proposal with probability $alpha$: set $bold(x)^((t+1)) = bold(x)'$. Otherwise, set $bold(x)^((t+1)) = bold(x)^((t))$.
 
@@ -69,7 +69,7 @@ The acceptance ratio ensures the chain satisfies _detailed balance_ with respect
 $
   pi(bold(x)) P(bold(x) -> bold(x)') = pi(bold(x)') P(bold(x)' -> bold(x)),
 $
-which guarantees that $pi$ is a stationary distribution of the chain. Under mild regularity conditions (irreducibility and aperiodicity), the chain converges to $pi$ regardless of initialization
+which guarantees that $pi$ is a stationary distribution of the chain.
 
 = Code setup
 
@@ -94,15 +94,13 @@ The three MCMC algorithms are implemented in Python using the JAX @jax2018github
 
 = Random-walk Metropolis-Hastings
 
-The first algorithm we implement is the Random-walk MH.
-
 == Theory
 
 Random-walk MH uses a symmetric proposal centered at the current state:
 $
-  q(bold(x)' | bold(x)) = cal(N)(bold(x)' ; bold(x), sigma^2 bold(I)),
+  q(bold(x)'|bold(x)) = cal(N)(bold(x)' ; bold(x), sigma^2 bold(I)),
 $
-where $sigma > 0$ is the step size. Since the proposal is symmetric, i.e., $q(bold(x)' | bold(x)) = q(bold(x) | bold(x)')$, the acceptance probability simplifies to
+where $sigma > 0$ is the step size. Since the proposal is symmetric, i.e., $q(bold(x)'|bold(x)) = q(bold(x)|bold(x)')$, the acceptance probability simplifies to
 $
   alpha(bold(x), bold(x)') = min lr((1, frac(pi(bold(x)'), pi(bold(x))))).
 $
@@ -147,8 +145,6 @@ The step size $sigma$ controls the trade-off between exploration and acceptance 
 
 = Langevin Metropolis-Hastings
 
-The second algorithm we implement is the Langevin MH.
-
 == Theory
 
 The Metropolis-adjusted Langevin algorithm (MALA) incorporates gradient information into the proposal. It is motivated by the _Langevin diffusion_, the stochastic differential equation
@@ -157,13 +153,13 @@ $
 $
 which has $pi$ as its stationary distribution. Discretizing with step size $epsilon$ yields the proposal
 $
-  q(bold(x)' | bold(x)) = cal(N)lr((bold(x)'; bold(x) + epsilon nabla log pi(bold(x)), 2 epsilon bold(I))).
+  q(bold(x)'|bold(x)) = cal(N)lr((bold(x)'; bold(x) + epsilon nabla log pi(bold(x)), 2 epsilon bold(I))).
 $
-Unlike the random-walk proposal, this is _not_ symmetric: $q(bold(x)' | bold(x)) != q(bold(x) | bold(x)')$. Therefore, we must use the full MH acceptance probability
+Unlike the random-walk proposal,  $q(bold(x)'|bold(x)) != q(bold(x)|bold(x)')$ mean this is _not_ symmetric. Therefore, we must use the full MH acceptance probability
 $
-  alpha(bold(x), bold(x)') = min lr((1, frac(pi(bold(x)') q(bold(x) | bold(x)'), pi(bold(x)) q(bold(x)' | bold(x))))).
+  alpha(bold(x), bold(x)') = min lr((1, frac(pi(bold(x)') q(bold(x)|bold(x)'), pi(bold(x)) q(bold(x)'|bold(x))))).
 $
-The gradient drift biases proposals toward high-density regions, enabling larger step sizes and faster mixing compared to random-walk MH. The scaling limit literature indicates that the optimal acceptance probability is approximately $0.57$ @dunson_hastings_2020.
+The gradient mean proposal move toward high-density regions, enabling larger step sizes and faster mixing compared to random-walk MH. The scaling limit literature indicates that the optimal acceptance probability is approximately $0.57$ @dunson_hastings_2020.
 
 == Implementation
 / `langevin.py`: Building the Angevin MH kernel
@@ -201,8 +197,6 @@ The gradient drift biases proposals toward high-density regions, enabling larger
 
 = Hamiltonian Metropolis-Hastings
 
-The third algorithm we implement is the Hamiltonian MH.
-
 == Theory
 
 Hamiltonian Monte Carlo (HMC) augments the target with auxiliary _momentum_ variables $bold(p) in RR^d$ and samples from the joint distribution
@@ -224,13 +218,13 @@ Each iteration proceeds as follows:
   $
 + *Accept/reject*: Accept the proposal $(bold(x)', bold(p)')$ with probability $min(1, exp(-Delta H))$, where $Delta H = H(bold(x)', bold(p)') - H(bold(x), bold(p))$.
 
-The leapfrog integrator is _symplectic_ (volume-preserving and time-reversible), which ensures the proposal mechanism is symmetric. In exact arithmetic $Delta H = 0$; in practice, small discretization errors require the MH correction. HMC can traverse the state space rapidly by following the geometry of $pi$, achieving low autocorrelation even with high acceptance rates.
+The leapfrog integrator is _symplectic_ (volume-preserving and time-reversible), which ensures the proposal mechanism is symmetric. In exact arithmetic $Delta H = 0$. However, in practice, small discretization errors require the MH correction. HMC can traverse the state space rapidly by following the geometry of $pi$, achieving low autocorrelation even with high acceptance rates.
 
 == Implementation
-/ `hamiltonian.py`: Building the Hamiltonian MH kernel
+/ `hamiltonian.py`: Building the HMH kernel
 #raw(read("code/scripts/hamiltonian.py"), block: true, lang: "python")
 
-/ `hmc_chain.py`: Running the tuning experiment for the Hamiltonian MH.
+/ `hmc_chain.py`: Running the tuning experiment for the HMC.
 #raw(read("code/tasks/hmc_chain.py"), block: true, lang: "python")
 
 == Gaussian distribution
@@ -239,7 +233,7 @@ The leapfrog integrator is _symplectic_ (volume-preserving and time-reversible),
 
 #figure(
   image("code/output/hmc/tuning_mvn.svg", width: 100%),
-  caption: "Tuning experiment of Hamiltonian MH for Gaussian distribution",
+  caption: "Tuning experiment of HMC for Gaussian distribution",
 )<hmc-guassian>
 
 == Multimodal distribution
@@ -248,7 +242,7 @@ The leapfrog integrator is _symplectic_ (volume-preserving and time-reversible),
 
 #figure(
   image("code/output/hmc/tuning_multimodal.svg", width: 100%),
-  caption: "Tuning experiment of Hamiltonian MH for multimodal distribution",
+  caption: "Tuning experiment of HMC for multimodal distribution",
 )<hmc-multmodal>
 
 == Volcano distribution
@@ -257,5 +251,5 @@ The leapfrog integrator is _symplectic_ (volume-preserving and time-reversible),
 
 #figure(
   image("code/output/hmc/tuning_volcano.svg", width: 100%),
-  caption: "Tuning experiment of Hamiltonian MH for multimodal distribution",
+  caption: "Tuning experiment of HMC for multimodal distribution",
 )<hmc-volcano>

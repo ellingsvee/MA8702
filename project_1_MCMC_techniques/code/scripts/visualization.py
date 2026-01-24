@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import jax.numpy as jnp
 
-from utils import autocorr
+from scripts.autocorr import autocorr
 
 
 def plot_trace(ax, positions, label):
