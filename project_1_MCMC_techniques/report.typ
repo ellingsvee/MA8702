@@ -251,5 +251,5 @@ The leapfrog integrator is _symplectic_ (volume-preserving and time-reversible),
 
 #figure(
   image("code/output/hmc/tuning_volcano.svg", width: 100%),
-  caption: "Tuning experiment of HMC for multimodal distribution",
+  caption: "Tuning experiment of HMC for volcano distribution",
 )<hmc-volcano>
