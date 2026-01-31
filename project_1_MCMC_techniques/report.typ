@@ -253,3 +253,44 @@ The leapfrog integrator is _symplectic_ (volume-preserving and time-reversible),
   image("code/output/hmc/tuning_volcano.svg", width: 100%),
   caption: "Tuning experiment of HMC for volcano distribution",
 )<hmc-volcano>
+
+= Stan
+#table(
+  columns: (0.3fr, auto, auto, auto, auto, auto, auto, auto, auto, auto, auto),
+  // inset: 10pt,
+  align: horizon,
+  table.header([*Pump*], [1], [2], [3], [4], [5], [6], [7], [8], [9], [10]),
+  [y], $5$, $1$, $5$, $14$, $3$, $19$, $1$, $1$, $4$, $22$,
+  [t], $94.3$, $15.7$, $62.9$, $126.0$, $5.24$, $31.4$, $1.05$, $1.05$, $2.1$, $10.5$,
+)
+
+
+
+/ `pump.stan`: Defining the Stan model:
+#raw(read("code/stan/pump.stan"), block: true)
+
+/ `model.R`: Running the Stan model and generating plots:
+#raw(read("code/stan/model.R"), block: true, lang: "R")
+
+== Results
+
+#figure(
+  image("code/stan/traceplots.svg", width: 100%),
+  caption: "Traceplots",
+)<stan-traceplots>
+
+// #figure(
+//   image("code/stan/trace_lambda.svg", width: 100%),
+//   caption: "",
+// )<stan-trace_lambda>
+
+#figure(
+  image("code/stan/posterior_area.svg", width: 100%),
+  caption: "",
+)<stan-posterior>
+
+#figure(
+  image("code/stan/lambda_intervals.svg", width: 100%),
+  caption: "Posterior distributions",
+)<stan-intervals>
+
