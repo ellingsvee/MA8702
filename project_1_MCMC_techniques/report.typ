@@ -253,7 +253,7 @@ As for the other algorithms, the `build_kernel()` in `scripts/hmc_chain.py` retu
 
 == Gaussian distribution
 
-@hmc-guassian shows the tuning experiment for the Gaussian distribution. For Hamiltonian MC we prefer a high acceptance rate. Looking at the plots we see that $sigma=0.5$ gives the smallest correlation between consecutive samples. As it still has a very high acceptance rate, this is preferred.
+@hmc-guassian shows the tuning experiment for the Gaussian distribution. For Hamiltonian MC we prefer a high acceptance rate. Looking at the plots we see that $sigma=0.5$ gives the smallest correlation between consecutive samples. As it still has a very high acceptance rate, this is preferred. Compared to the other algorithms, we also see that HMC can achieve much lower autocorrelation even with a high acceptance rate, which is a key advantage of this method.
 
 #figure(
   image("code/output/hmc/tuning_mvn.svg", width: 100%),
