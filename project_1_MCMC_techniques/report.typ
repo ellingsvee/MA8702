@@ -57,16 +57,17 @@ In this project we implement three variations of the _Metropolis-Hastings_ (MH).
     pi(bold(x)) prop frac(1, 2 pi) exp lr((-1/2 bold(x)^(top) bold(x)))(bold(x)^(top) bold(x) + 0.25)
   $
 
-@bivariate-densities visualizes the three densities on a grid covering $[-5, 5] times [-5, 5]$. The grid spacing is $0.1$, which gives in total $101 times 101$ grid cells.
+
+The densities are implemented in the `densities.py` file. @bivariate-densities visualizes the three densities on a grid covering $[-5, 5] times [-5, 5]$. The grid spacing is $0.1$, which gives in total $101 times 101$ grid cells.
 
 #figure(
   image("code/output/distributions.svg", width: 100%),
   caption: [Bivariate densities on a $[-5, 5] times [-5, 5]$ domain.],
 )<bivariate-densities>
 
-The densities are implemented in the `densities.py` file, which contains the following code.
-
-#raw(read("code/scripts/densities.py"), block: true, lang: "python")
+// The densities are implemented in the `densities.py` file, which contains the following code.
+//
+// #raw(read("code/scripts/densities.py"), block: true, lang: "python")
 
 = Theoretical background for Metropolis-Hastings
 
@@ -90,9 +91,9 @@ which guarantees that $pi$ is a stationary distribution of the chain.
 The three MCMC algorithms are implemented in Python using the JAX @jax2018github library for linear algebra and _automatic differentiation_ (AD). This enables us to compute the gradients of the log-densities required for the Langevin and Hamiltonian algorithms without having to specify them manually. JAX also has functionality for just-in-time (JIT) compilation, which we use to speed up the sampling process, and for running multiple chains in parallel. The implementation is overall inspired by the great Blackjax library @cabezas2024blackjax, which provides modern and efficient implementations of many MCMC algorithms.
 
 
-When developing the code, I found it most sensible to implement the three algorithms as separate _kernels_, and write a single function for that takes a specific kernel as input and runs the chains. This inference function is then used for all three algorithms, and allows for a general and reusable implementation. The code is organized as follows:
+When developing the code, I found it most sensible to implement the three algorithms as separate _kernels_, and write a single function for that takes a specific kernel as input and runs the chains. This inference function is then used for all three algorithms, and allows for a general and reusable implementation. The code can be found in `scripts/inference.py`.
 
-#raw(read("code/scripts/inference.py"), block: true, lang: "python")
+// #raw(read("code/scripts/inference.py"), block: true, lang: "python")
 
 
 
@@ -129,12 +130,11 @@ $
 
 The step size $sigma$ controls the trade-off between exploration and acceptance rate. A small $sigma$ yields high acceptance but slow exploration; a large $sigma$ proposes distant points but with low acceptance. For high-dimensional targets, optimal scaling theory @roberts_rosenthal_2001 suggests tuning $sigma$ to achieve an acceptance rate of approximately $0.234$.
 
-== Implementation
 
-Building the Random-walk MH kernel is done in `random_walk.py`. I use the tuples `RWState` for storing the intermediate states of the chain, and `RWInfo` for storing information about the acceptance rate and other diagnostics. The `build_kernel()` function takes in the log-density function and a step size, and returns a kernel function that takes in a state and returns the next state and info. As discussed previously, this function is passed into the `inference_loop()` function that runs the chain.
+Building the Random-walk MH kernel is done in `scripts/random_walk.py`. I use the tuples `RWState` for storing the intermediate states of the chain, and `RWInfo` for storing information about the acceptance rate and other diagnostics. The `build_kernel()` function takes in the log-density function and a step size, and returns a kernel function that takes in a state and returns the next state and info. As discussed previously, this function is passed into the `inference_loop()` function that runs the chain.
 
 
-#raw(read("code/scripts/random_walk.py"), block: true, lang: "python")
+// #raw(read("code/scripts/random_walk.py"), block: true, lang: "python")
 
 // / `rwmh_chain.py`: Running the tuning experiment for the Random-walk MH.
 // #raw(read("code/tasks/rwmh_chain.py"), block: true, lang: "python")
@@ -187,14 +187,12 @@ $
 $
 The gradient mean proposal move toward high-density regions, enabling larger step sizes and faster mixing compared to random-walk MH. The scaling limit literature indicates that the optimal acceptance probability is approximately $0.57$ @dunson_hastings_2020.
 
-== Implementation
-The `build_kernel()` is structured similarly as for the random-walk MH. One thing to note is the `jax.value_and_grad()`, which computes both the value and the gradient of the log-density in a single pass.
-#raw(read("code/scripts/langevin.py"), block: true, lang: "python")
+// == Implementation
+For the implementation, the `build_kernel()` in `langevin_chain.py` is structured similarly as for the random-walk MH. One thing to note is the `jax.value_and_grad()`, which computes both the value and the gradient of the log-density in a single pass.
+// #raw(read("code/scripts/langevin.py"), block: true, lang: "python")
 
-// / `langevin_chain.py`: Running the tuning experiment for the Angevin MH.
-// #raw(read("code/tasks/langevin_chain.py"), block: true, lang: "python")
-
-== Gaussian distribution
+== Results
+=== Gaussian distribution
 
 @langevin-guassian shows the tuning experiment for the Gaussian distribution. $sigma=0.5$ is closest to the optimal acceptance probability, and is therefore preferred.
 
@@ -203,7 +201,7 @@ The `build_kernel()` is structured similarly as for the random-walk MH. One thin
   caption: "Tuning experiment of Langevin MH for Gaussian distribution",
 )<langevin-guassian>
 
-== Multimodal distribution
+=== Multimodal distribution
 
 @langevin-multmodal shows the tuning experiment for the multimodal distribution. $sigma=1.0$ is closest to the optimal acceptance probability, and is therefore preferred.
 
@@ -212,7 +210,7 @@ The `build_kernel()` is structured similarly as for the random-walk MH. One thin
   caption: "Tuning experiment of Langevin MH for multimodal distribution",
 )<langevin-multmodal>
 
-== Volcano distribution
+=== Volcano distribution
 
 @langevin-volcano shows the tuning experiment for the volcano distribution. $sigma=1.5$ is closest to the optimal acceptance probability, and is therefore preferred.
 
@@ -246,9 +244,9 @@ Each iteration proceeds as follows:
 
 The leapfrog integrator is _symplectic_ (volume-preserving and time-reversible), which ensures the proposal mechanism is symmetric. In exact arithmetic $Delta H = 0$. However, in practice, small discretization errors require the MH correction. HMC can traverse the state space rapidly by following the geometry of $pi$, achieving low autocorrelation even with high acceptance rates.
 
-== Implementation
-As for the other algorithms, the `build_kernel()` returns a kernel function that updates the state and info. Like in the MALA implementation, it also relies AD to compute the gradients. The leapfrog integrator is implemented in the `leapfrog()` function, which is called inside the kernel.
-#raw(read("code/scripts/hamiltonian.py"), block: true, lang: "python")
+As for the other algorithms, the `build_kernel()` in `scripts/hmc_chain.py` returns a kernel function that updates the state and info. Like in the MALA implementation, it also relies AD to compute the gradients. The leapfrog integrator is implemented in the `leapfrog()` function, which is called from inside the kernel.
+
+// #raw(read("code/scripts/hamiltonian.py"), block: true, lang: "python")
 
 // / `hmc_chain.py`: Running the tuning experiment for the HMC.
 // #raw(read("code/tasks/hmc_chain.py"), block: true, lang: "python")
@@ -285,17 +283,17 @@ As for the other algorithms, the `build_kernel()` returns a kernel function that
 For the last part of the project, we implement a simple model in the probabilistic programming language Stan @carpenter2017stan. This language implements a variant of HMC called the _No-U-Turn Sampler_ (NUTS) @hoffman_no-u-turn_2011, which automatically tunes the number of leapfrog steps and step size during sampling. In my personal opinion, developing and using a separate language for MCMC seems like bit of an overkill. However, I am open to giving it a try and see how it works in practice.
 
 We consider an example concerning the number of failures in ten power plants. The data is presented in @data_power_plants. Here $y_i$ is the number of times that pump $i$ has failed and $t_i$ is the operation time for the pump (in 1000s of hours). Pump failures are modelled as
-#math.equation(block: true, numbering: none)[$
+$
   y_i|lambda_i tilde.op "Posson"(lambda_(i)t_(i)), quad i = 1, ..., 10.
-$]
+$
 We chose a conjugate prior for $lambda_i$
-#math.equation(block: true, numbering: none)[$
+$
   lambda_i|alpha, beta tilde.op "Gamma"(alpha, beta), quad i = 1, ..., 10,
-$]
+$
 where $alpha$ and $beta$ are given the hyperpriors
-#math.equation(block: true, numbering: none)[$
+$
   alpha tilde.op "Exp"(1.0) quad beta tilde.op "Gamma"(0.1, 1.0).
-$]
+$
 
 
 #figure(
@@ -311,14 +309,10 @@ $]
 )<data_power_plants>
 
 
-In the `pump.stan` file, we write a Stan program for this model. Its defines the data, the parameters and the model, which together specify the likelihood and the priors. The code is as follows.
+In the `stan/pump.stan` file, we write a Stan program for this model. Its defines the data, the parameters and the model, which together specify the likelihood and the priors. Now, we can from R prepare the data and fit the model. In `stan/model.R` we write a script for running four chains for $10000$ iterations, with a burn-in of $2000$. We also utilize the bayesplot package @Gabry_2019 to visualize the results.
 
-#raw(read("code/stan/pump.stan"), block: true, lang: "stan")
-
-Now, we can from R prepare the data and fit the model. We run four chains for $10000$ iterations, with a burn-in of $2000$. We further use the bayesplot package @Gabry_2019 to visualize the results.
-
-
-#raw(read("code/stan/model.R"), block: true, lang: "R")
+// #raw(read("code/stan/pump.stan"), block: true, lang: "stan")
+// #raw(read("code/stan/model.R"), block: true, lang: "R")
 
 
 Fitting the model, @stan-output shows summary statistics for the parameters, including the mean, standard deviation, quantiles, effective sample size and Rhat statistic. All parameters exhibits good convergence, with $hat(R)$ values equal to $1$. Effective sample sizes are large for all parameters (from around 25,000 to 46,000), suggesting low autocorrelation and efficient exploration of the posterior distribution. Monte Carlo standard errors are negligible relative to posterior standard deviations, implying high numerical precision in the estimated posterior summaries.
