@@ -10,6 +10,16 @@
 #let py(body) = raw(body, lang: "python")
 #let cmd(body) = raw(body, lang: "bash")
 
+#set math.equation(numbering: "(1)")
+#show math.equation: it => {
+  if it.block and not it.has("label") and it.numbering != none [
+    #counter(math.equation).update(v => v - 1)
+    #math.equation(it.body, block: true, numbering: none)
+  ] else {
+    it
+  }
+}
+
 
 #show: ilm.with(
   title: [Metropolis-Hastings for bivariate densities],
