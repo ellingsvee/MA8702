@@ -1,0 +1,8 @@
+text.usetex : True
+font.family : serif
+font.serif : Computer Modern Roman
+axes.labelsize : 15
+font.size : 15
+legend.fontsize : 15
+xtick.labelsize : 15
+ytick.labelsize : 15
