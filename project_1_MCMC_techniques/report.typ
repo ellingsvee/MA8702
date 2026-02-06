@@ -13,7 +13,7 @@
 
 #show: ilm.with(
   title: [Metropolis-Hastings for bivariate densities],
-  author: "Prosjekt 1 in MA8702. Written by Elling Svee.",
+  author: "Project 1 in MA8702. Written by Elling Svee.",
   // date: datetime(year: 2026, month: 01, day: 18),
   date: datetime.today(),
   // abstract: [],
@@ -311,7 +311,7 @@ Now, we can from R prepare the data and fit the model. We run four chains for $1
 #raw(read("code/stan/model.R"), block: true, lang: "R")
 
 
-Fitting the model, @stan-output shows summary statistics for the parameters, including the mean, standard deviation, quantiles, effective sample size and Rhat statistic. All parameters exhibited good convergence, with $hat(R)$ values equal to $1$. Effective sample sizes were large for all parameters (randing from around 25,000 to 46,000), suggesting low autocorrelation and efficient exploration of the posterior distribution. Monte Carlo standard errors were negligible relative to posterior standard deviations, implying high numerical precision in the estimated posterior summaries.
+Fitting the model, @stan-output shows summary statistics for the parameters, including the mean, standard deviation, quantiles, effective sample size and Rhat statistic. All parameters exhibits good convergence, with $hat(R)$ values equal to $1$. Effective sample sizes are large for all parameters (from around 25,000 to 46,000), suggesting low autocorrelation and efficient exploration of the posterior distribution. Monte Carlo standard errors are negligible relative to posterior standard deviations, implying high numerical precision in the estimated posterior summaries.
 
 #figure(
   align(left)[
@@ -340,7 +340,7 @@ lambda[10] 0.97    0.00 0.30 0.47 0.76 0.94  1.15  1.65 41896    1",
 
 
 
-@stan-trace-lambda and @stan-traceplots shows the traceplots for the parameters. The chains seem to have good mixing and no signs of non-convergence. The posterior distributions for the $lambda_i$ are shown in @stan-posterior, and the 95% credible intervals for $lambda_i$ are shown in @stan-intervals. Overall, the results look reasonable given the data, and the inference seems to have worked well.
+@stan-trace-lambda and @stan-traceplots shows the traceplots for the parameters. The chains seem to have good mixing and no signs of non-convergence. The posterior distributions for the $lambda_i$ are shown in @stan-posterior, and the 95% credible intervals for $lambda_i$ are shown in @stan-intervals. Overall, the results look reasonable given the data, and the inference seems to have worked well. We observe the posteriors of $lambda_(8)$ and $lambda_9$ being relatively high compared to the others, suggesting that these have a higher failure rate.
 
 
 #figure(
