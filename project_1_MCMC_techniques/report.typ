@@ -356,11 +356,11 @@ lambda[10] 0.97    0.00 0.30 0.47 0.76 0.94  1.15  1.65 41896    1",
 
 #figure(
   image("code/stan/posterior_area.svg", width: 80%),
-  caption: "Posterior distributions for the hyperparameters.",
+  caption: [Posterior distributions for the $alpha$ and $beta$ hyperparameters.],
 )<stan-posterior>
 
 #figure(
   image("code/stan/lambda_intervals.svg", width: 80%),
-  caption: "Posterior distributions for the $lambda_i$ parameters, with 95% credible intervals.",
+  caption: [Posterior distributions for the $lambda_i$ parameters, with 95% credible intervals.],
 )<stan-intervals>
 
