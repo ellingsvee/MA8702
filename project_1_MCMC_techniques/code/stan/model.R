@@ -19,7 +19,7 @@ fit <- stan(
   file = "pump.stan",  # make sure "pump.stan" is in your working dir
   data = stan_data,
   chains = 4,
-  iter = 4000,
+  iter = 10000,
   warmup = 2000,
   seed = 123
 )
