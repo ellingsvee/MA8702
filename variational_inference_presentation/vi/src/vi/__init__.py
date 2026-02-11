@@ -1,12 +1,12 @@
 """Variational Inference library (JAX)."""
 
 from vi.bbvi import BBVIResult, run_bbvi
-from vi.cavi import CAVIPosterior, NormalGammaPrior, run_cavi
+from vi.cavi import CAVIPosterior, GMMPrior, run_cavi
 
 __all__ = [
     "BBVIResult",
     "CAVIPosterior",
-    "NormalGammaPrior",
+    "GMMPrior",
     "run_bbvi",
     "run_cavi",
 ]
