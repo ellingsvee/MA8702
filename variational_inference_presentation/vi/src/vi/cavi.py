@@ -1,12 +1,8 @@
 import jax.numpy as jnp
 from jax import Array, jit
 from jax.nn import logsumexp
-from typing import NamedTuple
 
-
-class GMMPrior(NamedTuple):
-    sigma: float = 1.0
-    K: int = 3
+from vi.gmm import GMMPrior
 
 
 def run_cavi(
