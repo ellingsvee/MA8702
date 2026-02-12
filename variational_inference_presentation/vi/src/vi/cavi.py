@@ -1,3 +1,4 @@
+import jax
 import jax.numpy as jnp
 from jax import Array, jit
 from jax.nn import logsumexp
@@ -51,3 +52,16 @@ def run_cavi(
         parameters = step(parameters)
 
     return parameters
+
+
+def sample_cavi(key, parameters, n_samples=8):
+    m, s2, phi = parameters
+    K, dim = m.shape
+
+    key, subkey = jax.random.split(key)
+    component_samples = jax.random.categorical(subkey, jnp.log(phi), shape=(n_samples,))
+
+    key, subkey = jax.random.split(key)
+    eps = jax.random.normal(subkey, shape=(n_samples, dim))
+    samples = m[component_samples] + jnp.sqrt(s2[component_samples]) * eps
+    return samples
