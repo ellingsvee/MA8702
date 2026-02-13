@@ -12,7 +12,7 @@
 
 #set text(
   font: "Times New Roman",
-  size: 25pt,
+  size: 22pt,
 )
 
 #set figure(gap: 0.0em)
@@ -88,7 +88,7 @@ However, $p(bold(x))$ is often hard to compute...
 
 ==
 // - As we know, MCMC handle this problem through sampling.
-Variational inference handles this problem through optimization
+_Variational inference_ (VI) handles this problem through optimization
 $
   q^(ast)(bold(z)) = "argmin"_(q(bold(z)) in cal(D)) "KL"(q(bold(z)) || p(bold(z)|bold(x))).
 $
@@ -98,10 +98,25 @@ $
 $
 However, we still do not know how to compute $p(bold(z)|bold(x))$.
 
+==
+*Potential benefit of VI*
++ Better utilization of computational resources (e.g., GPU clusters). Therefore scales better to large datasets and complex models.
++ Better convergence properties (e.g., no issues with mixing and autocorrelation). Therefore faster convergence to a good approximation.
+
+*Potential disadvantages of VI*
++ Assumptions about the variational family (e.g., mean-field assumption) may lead to poor approximations.
++ KL divergence might mot be the best measure (f.ex. not symmetric).
+
+
 == Evidence Lower Bound (ELBO)
 $
-  "KL"(q(bold(z)) || p(bold(z)|bold(x)))
-  &= bb(E)_(bold(z) tilde.op bold(q))[log q(bold(z))] - bb(E)_(bold(z) tilde.op bold(q))[log p(bold(z)|bold(x))].
+  "KL"(q(bold(z))||p(bold(z)|bold(x)))
+  &= bb(E)_(bold(z) tilde.op bold(q))[log q(bold(z))] - bb(E)_(bold(z) tilde.op bold(q))[log p(bold(z)|bold(x))] \
+  &= bb(E)_(bold(z) tilde.op bold(q))[log q(bold(z))] - bb(E)_(bold(z) tilde.op bold(q))[log p(bold(z), bold(x))] + bb(E)_(bold(z) tilde.op bold(q))[log p(bold(x))]
+$
+gives us
+$
+  "ELBO"(q) = bb(E)_(bold(z) tilde.op bold(q))[log p(bold(z), bold(x))] - bb(E)_(bold(z) tilde.op bold(q))[log q(bold(z))].
 $
 
 == Mean-field variational family
@@ -113,6 +128,9 @@ $
 $
 _This trick also ensures a diagonal covariance matrix..._
 
+
+= Example: Gaussian mixture model
+
 == Example: Gaussian mixture model
 $K$ clusters, $n$ observations, and $d$-dimensional data.
 // Latent variables $bold(z) = (bold(mu)^top, bold(c)^top)^(top)$.
@@ -121,67 +139,94 @@ $
                           c_(i) & tilde.op "Categorical"(1 \/ K) quad                                   &  i = 1, ..., n \
   bold(x)_(i) | c_(i), bold(mu) & tilde.op cal(N)(c_(i)^(top)bold(mu), sigma^(2) bold(upright(I))) quad & i = 1, ..., n.
 $
-Here, the latent variables are $bold(z) = (bold(mu), bold(c))$.
+The joint density of observed and latent variables is
+$
+  p(bold(mu), bold(c), bold(x)) = p(bold(mu)) product_(i=1)^n p(c_(i)) p(bold(x)_(i) | c_(i), bold(mu)).
+$
 
 
+== Example: Gaussian mixture model
+
+Construct the mean-field variational family
+$
+  q(bold(mu), bold(c)) = product_(k=1)^K q_k (bold(mu)_(k); bold(m)_(k), bold(upright(Sigma))_(k)) product_(i=1)^n q_i (c_(i); bold(phi)_(i)),
+$
+where
+$
+  q_k (bold(mu)_(k); bold(m)_(k), bold(upright(Sigma))_(k)) tilde.op cal(N)(bold(m)_(k), bold(upright(Sigma))_(k))
+  quad"and"quad
+  q_i (c_(i); bold(phi)_(i)) tilde.op "Categorical"(bold(phi)_(i)).
+$
+What confuses me a bit is the $bold(upright(Sigma))_k$. Do these have to be on the form $bold(upright(Sigma))_k = s_k^(2)bold(upright(I))$?
+
+= Optimization
+== Coordinate Ascent Variational Inference (CAVI)
+Iteratively optimizes each factor of the mean-field variational density, while holding the others fixed.
+
+Splitting $bold(z) = (z_(j), bold(z)_(-j))$ and $q(bold(z)) = q_(j)(z_(j))q_(-j)(bold(z)_(-j))$, and using iterated expectation, we find
+$
+  "ELBO"(q_(j)) prop bb(E)_(j)[bb(E)_(-j)[log p(z_(j), bold(z)_(-j), bold(x))]] - bb(E)_(j)[log q_(j)(z_(j))]
+$
+Maximizing this over densities $q_(j)$ gives the optimal solution (skipping the details)
+$
+  q_(j)^(ast)(z_(j)) prop exp{bb(E)_(-j)[log p(z_(j), bold(z)_(-j), bold(x))]}.
+$
+
+== Example: Gaussian mixture model
+$
+  "ELBO"(bold(m), bold(s)^(2), bold(phi)) =
+  &sum_(k=1)^(K) bb(E)[log p(bold(mu)_(k)); bold(m)_(k), s_(k)^(2))] \
+  &+ sum_(i=1)^(n) (bb(E)[log p(c_(i) ; phi_(i))] + bb(E)[log p(bold(x)_(i)|c_(i), bold(mu)); bold(phi)_(i), bold(m), bold(s)^(2)]) \
+  &+ sum_(k=1)^(K) bb(E)[log q(bold(mu)_(k); bold(m)_(k), s_(k)^(2))] + sum_(i=1)^(n) bb(E)[log q(c_(i); phi_(i))].
+$
 
 
-//
-//
-//
-// == Problem
-// Consider a joint density of latent variables $bold(z)$ and observations $bold(x)$
-// $
-//   p(bold(z), bold(x)) = p(bold(z)) p(bold(x)|bold(z)).
-// $
-// A Bayesian model draws the latent variables from a prior density $p(bold(z))$ and then relates them to the observations through the likelihood $p(bold(x)|bold(z))$. Inference in a Bayesian model amounts to  conditioning on data and computing the posterior $p(bold(z)|bold(x))$.
-//
-// Issues:
-// - Slow for large datasets of complex models
-//
-// == Variational inference
-// Use optimization instead of sampling!
-//
-// Choose a _family_ of approximate densities $cal(D)$, which is a set of densities over the latent variables. Try to find a member that minimizes the Kullback-Leibler divergence to the exact posterior
-// $
-//   q^(ast)(bold(z)) = "argmin"_(q(bold(z)) in cal(D)) "KL"(q(bold(z)) || p(bold(z)|bold(x))).
-// $
-//
-// Need to choose $cal(D)$ to be flexible enough to capture a density close to $p(bold(z)|bold(x))$, but simple enough for efficient optimization.
-//
-// Connection to the EM algorithm
-//
-// == Benefits and disadvantages
-//
-// Benefits:
-// + Can be better that general MCMC for mixture models with multiple modes.
-//
-// Disadvantages:
-// + No theoretical guarantees that we produce exactly the true posterior.
-//
-// _Variational inference is a valuable tool, alongside MCMC, in the statistician’s toolbox @blei_variational_2017 _
-//
-// == Evidence lower bound
-// $
-//   q^(ast)(bold(z)) & = "argmin"_(q(bold(z)) in cal(D)) "KL"(q(bold(z)) || p(bold(z)|bold(x))) \
-//                    & = "argmin"_(q(bold(z)) in cal(D)) [bb(E)(log q(bold(z))) - bb(E)(log p(bold(z)|bold(x)))].
-// $
-// is intractable because of the dependence on $p(bold(x))$.
-//
-// Instead optimize over objective function called the evidence lower bound (ELBO):
-// $
-//   "ELBO"(q) = bb(E)[log p(bold(z), bold(x))] - bb(E)[log q(bold(z))].
-// $
-// Note the relation $log p(bold(x)) = "KL"(q(bold(z))||p(bold(z)|bold(x))) + "ELBO"(q)$.
-//
-// == Mean-field variational family
-//
-// $
-//   q(bold(z)) = product_(j=1)^m q_j (bold(z)_j).
-// $
-// where each latent variable $bold(z)_j$ is governed by its own variational factor, the density $q_j (bold(z)_(j))$
-//
-//
+== Example: Gaussian mixture model
+#text(size: 18pt)[
+  Update formula for $phi_i$
+  $
+    q_i^(ast)(c_(i); bold(phi)_(i))
+    &prop exp{bb(E)_(bold(c)_(-i), bold(mu))[log p(c_(i), bold(c)_(-i), bold(mu), bold(x))]} \
+    &prop exp{bb(E)_(bold(c)_(-i), bold(mu))[log p(c_(i)) + log p (bold(c)_(-i)) + log p(bold(mu)) + sum_(j=1)^(n) log p(x_(j)|c_(j), bold(mu))]} \
+    &prop exp{bb(E)_(bold(mu))[log p(c_(i)) + log p(x_(i)|c_(i), bold(mu))]} \
+    &prop exp{bb(E)_(bold(mu))[frac(1, K) + log p(bold(x)_(i)|bold(mu)_(c_(i)))]} \
+    &prop exp{bb(E)_(bold(mu))[-frac(1, 2)(bold(x)_(i) - bold(mu)_(c_(i)))^(2)]} \
+    &prop exp{x_(i)m_(c_(i)) - frac(1, 2)s_(c_(i))^(2) - frac(1, 2)m_(c_(i))^(2)} \
+  $
+]
+== Example: Gaussian mixture model
+#text(size: 18pt)[
+  Update formulas for $m_(k)$ and $s_(k)^(2)$
+  $
+    q_k^(ast)(mu_(k); m_(k), s_(k)^(2))
+    &prop exp{bb(E)_(bold(c), bold(mu)_(-k))[log p(bold(c), mu_(k), bold(mu)_(-k), bold(x))]} \
+    &prop exp{bb(E)_(bold(c), bold(mu)_(-k))[log p (mu_(k)) + sum_(i=1)^(n) log p (x_(i)|c_(i), bold(mu))]} \
+    &prop exp{bb(E)_(bold(c), bold(mu)_(-k))[-frac(1, 2 sigma^(2))mu_(k)^(2) +sum_(i=1)^(n) "I"(c_(i)=k)log p(x_(i)|mu_(k))]} \
+    &prop exp{-frac(1, 2 sigma^(2))mu_(k)^(2) - frac(1, 2)sum_(i=1)^(n) phi_(i, k)(x_(i) - mu_(k))^(2)} \
+    &prop exp{-frac(1, 2)(frac(1, sigma^(2)) + sum_(i=1)^(n) phi_(i, k))[mu_(k) - frac(sum_(i=1)^(n) phi_(i, k)x_(i), frac(1, sigma^(2)) + sum_(i=1)^(n) phi_(i, k))]^(2)} \
+  $
+]
+
+== Black-box variational inference (BBVI)
+OK
+
+== Example: Gaussian mixture model
+text
+
+= Implementation
+
+= A more interesting example
+
+
+== Open problems
+- Other distance measures that KL
+- Alternatives to mean-field
+  - Add dependencies between latent variables (_structured VI_)
+  - Mixture of variational densities
+- Interface between VI and MCMC
+- Statistical properties of VI (e.g., consistency, asymptotic normality, etc.)
+
+
 
 ==
 #text(size: 15pt)[
