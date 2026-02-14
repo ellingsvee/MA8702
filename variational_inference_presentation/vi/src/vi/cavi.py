@@ -1,67 +1,34 @@
-import jax
 import jax.numpy as jnp
-from jax import Array, jit
-from jax.nn import logsumexp
-
-from vi.gmm import GMMPrior
+from jax import Array
 
 
-def run_cavi(
+def cavi(
     x: Array,
-    gmm_prior: GMMPrior = GMMPrior(),
-    n_iter: int = 100,
+    y: Array,
+    beta_init: float = 0.0,
+    sigma2_init: float = 1.0,
+    tau2: float = 0.25,
+    seed: int = 42,
 ):
-    if x.ndim == 1:
-        x = x[:, None]
-    n, dim = x.shape
-    K = gmm_prior.K
+    # Some constants
+    n = x.shape[0]
+    sum_x2 = jnp.sum(x**2)
+    sum_xy = jnp.sum(x * y)
+    sum_y2 = jnp.sum(y**2)
 
-    sigma2 = gmm_prior.sigma**2
+    # The mu_beta is not updated in the loop, so we can compute it once
+    mu_beta = sum_xy / (sum_x2 + 1 / tau2)
 
-    # Initialize variational parameters
-    indices = jnp.linspace(0, n - 1, K).astype(int)
-    m = x[indices]
-    s2 = jnp.ones((K,))
-    phi = jnp.ones((n, K)) / K
+    # Utility functions
+    def E_A(sigma2_beta):
+        return 0.5 * (
+            sum_y2
+            - 2 * mu_beta * sum_xy
+            + (sigma2_beta + mu_beta**2) * (sum_x2 + 1 / tau2)
+        )
 
-    parameters = (m, s2, phi)
+    def nu(E_A):
+        return 0.5 * E_A
 
-    @jit
-    def step(parameters):
-        m, s2, phi = parameters
-
-        linear = x @ m.T
-        quad = jnp.sum(m**2, axis=1) + dim * s2
-
-        log_phi = linear - 0.5 * quad
-        log_phi = log_phi - logsumexp(log_phi, axis=1, keepdims=True)
-        phi = jnp.exp(log_phi)
-
-        Nk = jnp.sum(phi, axis=0)
-        x_weighted = phi.T @ x
-
-        # Posterior variance:
-        s2 = 1.0 / (1.0 / sigma2 + Nk)
-
-        # Posterior mean:
-        m = s2[:, None] * x_weighted
-
-        return m, s2, phi
-
-    for _ in range(n_iter):
-        parameters = step(parameters)
-
-    return parameters
-
-
-def sample_cavi(key, parameters, n_samples=8):
-    m, s2, phi = parameters
-    K, dim = m.shape
-
-    key, subkey = jax.random.split(key)
-    component_samples = jax.random.categorical(subkey, jnp.log(phi), shape=(n_samples,))
-
-    key, subkey = jax.random.split(key)
-    eps = jax.random.normal(subkey, shape=(n_samples, dim))
-    samples = m[component_samples] + jnp.sqrt(s2[component_samples]) * eps
-    return samples
+    # for _ in range(100):
+    #     ...
