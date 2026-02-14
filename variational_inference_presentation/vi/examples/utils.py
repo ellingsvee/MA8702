@@ -40,7 +40,9 @@ def plot_variational_distributions(
     beta_grid = np.linspace(mu - 4 * sd, mu + 4 * sd, 200)
     axes[0].plot(beta_grid, norm.pdf(beta_grid, mu, sd), label=r"$q(\beta)$")
     if beta_samples is not None:
-        axes[0].hist(np.asarray(beta_samples), bins=50, density=True, alpha=0.4, label="HMC")
+        axes[0].hist(
+            np.asarray(beta_samples), bins=30, density=True, alpha=1.0, label="HMC"
+        )
     axes[0].axvline(
         beta_true, color="red", linestyle="--", label=rf"$\beta$ = {beta_true}"
     )
@@ -51,9 +53,13 @@ def plot_variational_distributions(
     alpha = float(result.alpha)
     nu = float(result.nu)
     s2_grid = np.linspace(0.01, nu / (alpha - 1) * 3, 200)
-    axes[1].plot(s2_grid, invgamma.pdf(s2_grid, a=alpha, scale=nu), label=r"$q(\sigma^2)$")
+    axes[1].plot(
+        s2_grid, invgamma.pdf(s2_grid, a=alpha, scale=nu), label=r"$q(\sigma^2)$"
+    )
     if sigma2_samples is not None:
-        axes[1].hist(np.asarray(sigma2_samples), bins=50, density=True, alpha=0.4, label="HMC")
+        axes[1].hist(
+            np.asarray(sigma2_samples), bins=30, density=True, alpha=1.0, label="HMC"
+        )
     axes[1].axvline(
         sigma2_true,
         color="red",
