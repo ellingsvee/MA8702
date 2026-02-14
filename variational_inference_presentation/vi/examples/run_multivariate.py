@@ -3,7 +3,7 @@ from time import time
 
 import jax
 import jax.numpy as jnp
-import vi.mcmc as mcmc
+from mcmc import hamiltonian, inference_loop
 from data import generate_multivariate_data, make_multivariate_logdensity
 from tabulate import tabulate
 from utils import (
@@ -56,16 +56,14 @@ def run_hmc(X, y, key):
     P = X.shape[1]
     logdensity_fn = make_multivariate_logdensity(X, y, TAU2)
     init_pos = jnp.zeros(P + 1)
-    init_state = mcmc.init(init_pos, logdensity_fn)
-    kernel = mcmc.build_kernel(logdensity_fn, step_size=0.001, num_steps=10)
+    init_state = hamiltonian.init(init_pos, logdensity_fn)
+    kernel = hamiltonian.build_kernel(logdensity_fn, step_size=0.001, num_steps=10)
 
-    _ = mcmc.inference_loop(key, kernel, init_state, num_samples=2)
+    _ = inference_loop(key, kernel, init_state, num_samples=2)
     jax.block_until_ready(_)
 
     t0 = time()
-    states, infos = mcmc.inference_loop(
-        key, kernel, init_state, num_samples=N_HMC_SAMPLES
-    )
+    states, infos = inference_loop(key, kernel, init_state, num_samples=N_HMC_SAMPLES)
     jax.block_until_ready(states.position)
     elapsed = time() - t0
 

@@ -1,9 +1,9 @@
 import os
 from pathlib import Path
 
-from scripts.densities import logdensity_multimodal, logdensity_mvn, logdensity_volcano
-from scripts.hamiltonian import build_kernel, init
-from scripts.tuning_experiment import run_tuning_experiment
+from mcmc.densities import logdensity_multimodal, logdensity_mvn, logdensity_volcano
+from mcmc.hamiltonian import build_kernel, init
+from mcmc.tuning_experiment import run_tuning_experiment
 
 OUTPUT_DIR = Path("output/hmc/")
 os.makedirs(OUTPUT_DIR, exist_ok=True)

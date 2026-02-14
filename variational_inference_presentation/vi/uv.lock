@@ -542,6 +542,35 @@ wheels = [
 ]
 
 [[package]]
+name = "mcmc"
+version = "0.1.0"
+source = { editable = "../../project_1_MCMC_techniques/code" }
+dependencies = [
+    { name = "jax", extra = ["cuda13"] },
+    { name = "matplotlib" },
+    { name = "numpy" },
+    { name = "pathlib" },
+    { name = "scipy" },
+    { name = "tqdm" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "jax", extras = ["cuda13"], specifier = ">=0.8.2" },
+    { name = "matplotlib", specifier = ">=3.10.8" },
+    { name = "numpy", specifier = ">=2.4.0" },
+    { name = "pathlib", specifier = ">=1.0.1" },
+    { name = "scipy", specifier = ">=1.16.3" },
+    { name = "tqdm", specifier = ">=4.67.1" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "ipykernel", specifier = ">=7.1.0" },
+    { name = "ty", specifier = ">=0.0.9" },
+]
+
+[[package]]
 name = "ml-dtypes"
 version = "0.5.4"
 source = { registry = "https://pypi.org/simple" }
@@ -829,6 +858,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/81/76/a1e769043c0c0c9fe391b702539d594731a4362334cdf4dc25d0c09761e7/parso-0.8.6.tar.gz", hash = "sha256:2b9a0332696df97d454fa67b81618fd69c35a7b90327cbe6ba5c92d2c68a7bfd", size = 401621, upload-time = "2026-02-09T15:45:24.425Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b6/61/fae042894f4296ec49e3f193aff5d7c18440da9e48102c3315e1bc4519a7/parso-0.8.6-py2.py3-none-any.whl", hash = "sha256:2c549f800b70a5c4952197248825584cb00f033b29c692671d3bf08bf380baff", size = 106894, upload-time = "2026-02-09T15:45:21.391Z" },
+]
+
+[[package]]
+name = "pathlib"
+version = "1.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ac/aa/9b065a76b9af472437a0059f77e8f962fe350438b927cb80184c32f075eb/pathlib-1.0.1.tar.gz", hash = "sha256:6940718dfc3eff4258203ad5021090933e5c04707d5ca8cc9e73c94a7894ea9f", size = 49298, upload-time = "2014-09-03T15:41:57.18Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/78/f9/690a8600b93c332de3ab4a344a4ac34f00c8f104917061f779db6a918ed6/pathlib-1.0.1-py3-none-any.whl", hash = "sha256:f35f95ab8b0f59e6d354090350b44a80a80635d22efdedfa84c7ad1cf0a74147", size = 14363, upload-time = "2022-05-04T13:37:20.585Z" },
 ]
 
 [[package]]
@@ -1227,6 +1265,7 @@ source = { editable = "." }
 dependencies = [
     { name = "jax", extra = ["cuda13"] },
     { name = "matplotlib" },
+    { name = "mcmc" },
     { name = "optax" },
     { name = "scikit-learn" },
     { name = "tabulate" },
@@ -1242,6 +1281,7 @@ dev = [
 requires-dist = [
     { name = "jax", extras = ["cuda13"], specifier = ">=0.9.0.1" },
     { name = "matplotlib", specifier = ">=3.10.8" },
+    { name = "mcmc", editable = "../../project_1_MCMC_techniques/code" },
     { name = "optax", specifier = ">=0.2.4" },
     { name = "scikit-learn", specifier = ">=1.8.0" },
     { name = "tabulate", specifier = ">=0.9.0" },

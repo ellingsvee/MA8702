@@ -3,7 +3,7 @@ from time import time
 
 import jax
 import jax.numpy as jnp
-import vi.mcmc as mcmc
+from mcmc import hamiltonian, inference_loop
 from data import generate_data, make_logdensity
 from jax import Array
 from utils import plot_data, plot_variational_distributions
@@ -43,15 +43,15 @@ def run_cavi(x: Array, y: Array) -> CAVIResult:
 def run_mcmc(x: Array, y: Array, mcmc_key: Array):
     logdensity_fn = make_logdensity(x, y, TAU2)
     initial_position = jnp.array([BETA, jnp.log(SIGMA2)])
-    initial_state = mcmc.init(initial_position, logdensity_fn)
-    kernel = mcmc.build_kernel(logdensity_fn, step_size=0.01, num_steps=10)
+    initial_state = hamiltonian.init(initial_position, logdensity_fn)
+    kernel = hamiltonian.build_kernel(logdensity_fn, step_size=0.01, num_steps=10)
 
-    _ = mcmc.inference_loop(mcmc_key, kernel, initial_state, num_samples=2)
+    _ = inference_loop(mcmc_key, kernel, initial_state, num_samples=2)
     jax.block_until_ready(_)
 
     # Run chain
     mcmc_start_time = time()
-    states, _ = mcmc.inference_loop(mcmc_key, kernel, initial_state, num_samples=10_000)
+    states, _ = inference_loop(mcmc_key, kernel, initial_state, num_samples=10_000)
     jax.block_until_ready(states.position)
     mcmc_end_time = time()
     print(f"MCMC took {mcmc_end_time - mcmc_start_time:.2f} seconds")
@@ -59,7 +59,7 @@ def run_mcmc(x: Array, y: Array, mcmc_key: Array):
 
 
 def main():
-    update_device()
+    set_device(DEVICE)
     output.mkdir(exist_ok=True)
 
     key = jax.random.key(SEED)

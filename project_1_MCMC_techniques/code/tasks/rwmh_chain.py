@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
-from scripts.tuning_experiment import run_tuning_experiment
-from scripts.random_walk import init, build_kernel
-from scripts.densities import logdensity_multimodal, logdensity_mvn, logdensity_volcano
+from mcmc.tuning_experiment import run_tuning_experiment
+from mcmc.random_walk import init, build_kernel
+from mcmc.densities import logdensity_multimodal, logdensity_mvn, logdensity_volcano
 
 
 OUTPUT_DIR = Path("output/rwmh/")
