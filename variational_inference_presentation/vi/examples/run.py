@@ -17,11 +17,27 @@ SEED = 1
 TAU2 = 0.25
 BETA = 0.30
 SIGMA2 = 1.0
-N_SAMPLES = 1_000
-GENERATE_PLOTS = True
+N_SAMPLES = 1_000_000
+GENERATE_PLOTS = False
+DEVICE = "GPU"  # or "GPU"
+
+
+def update_device():
+    # Check if any GPU devices are available
+    gpus = jax.devices("gpu")
+    if gpus and DEVICE == "GPU":
+        default_device = gpus[0]
+        # print("Using:", default_device)
+    else:
+        default_device = jax.devices("cpu")[0]
+        # print("Using CPU:", default_device)
+
+    # Set this device as default
+    jax.config.update("jax_default_device", default_device)
 
 
 def main():
+    update_device()
     output.mkdir(exist_ok=True)
 
     key = jax.random.key(SEED)
