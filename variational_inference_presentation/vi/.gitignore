@@ -1,4 +1,6 @@
+*.svg
 output
+output_multivariate
 examples_old
 
 # MacOS specific
