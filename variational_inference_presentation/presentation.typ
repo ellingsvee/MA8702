@@ -81,7 +81,7 @@ We want to evaluate the posterior $p(bold(z)|bold(x))$. However, the marginal li
 == Variational inference
 
 
-Variational inference (VI) attempts to _reframe_ the Bayesian inference problem as an optimization problem. Optimization, which involves taking derivatives instead of integrating, is much easier and generally faster.
+Variational inference (VI) attempts to _reframe_ the Bayesian inference problem as an optimization problem. Optimization, which involves taking derivatives instead of integrating, is generally faster (and easier?).
 
 
 
@@ -124,6 +124,7 @@ $
   & = bb(E)_(q(bold(z)))[log p(bold(x)|bold(z))] - bb(E)_(q(bold(z)))[log frac(q(bold(z)), p(bold(z)))] \
   & = underbrace(bb(E)_(q(bold(z)))[log p(bold(x)|bold(z))], "q fits data") - underbrace("KL"(q(bold(z))||p(bold(z))), "q satisfies prior")
 $
+#pause
 Additionally, since
 $
   log p(bold(x)) = "ELBO"(q) + "KL"(q(bold(z))||p(bold(z)|bold(x))) > "ELBO"(q),
@@ -175,7 +176,7 @@ $
   Then
   $
     "ELBO"(q_(j))
-    &= integral q_(j)(z_(j)) log tilde(p) (bold(x), z_(j)) dif z_(j) - integral q_(j)(z_(j)) log q_(j)(z_(j)) dif z_(j) \
+    &prop integral q_(j)(z_(j)) log tilde(p) (bold(x), z_(j)) dif z_(j) - integral q_(j)(z_(j)) log q_(j)(z_(j)) dif z_(j) \
     &= -integral q_(j)(z_(j)) log frac(q_(j)(z_j), tilde(p)(bold(x), z_j)) dif z_(j)
     = - "KL"(q_(j)(z_(j))||tilde(p)(bold(x), z_(j))) \
   $
@@ -329,14 +330,18 @@ meaning we update in terms of the conditional posterior distribution of $z_(j)$ 
 
 = Example
 
-== I want to try the simplest problem...linear regression!
+== I want to try...linear regression!
+#align(center)[
+  #image("vi/output/data.svg", width: 55%)
+]
+==
 
 Assume the following model
 - Observations $y tilde.op cal(N)(beta x, sigma^(2))$
 - Latent variables $bold(z) = (beta, sigma^(2))$ with priors
-  - $beta tilde.op cal(N)(0, tau^(2)sigma^(2))$
+  - $beta tilde.op cal(N)(0, tau^(2)sigma^(2))$ ("standardized" so $"Var"[beta \/ sigma] = tau$)
   - $sigma^(2) prop sigma^(-2)$ (improper Jeffreys prior)
-To use CAVI, we must compute variational densities $q^(ast)(beta)$ and $q^(ast)(sigma^(2))$...
+// To use CAVI, we must compute variational densities $q^(ast)(beta)$ and $q^(ast)(sigma^(2))$.
 
 == Variational density for $sigma^(2)$:
 #text(size: 20pt)[
@@ -389,24 +394,47 @@ To use CAVI, we must compute variational densities $q^(ast)(beta)$ and $q^(ast)(
 ]
 
 == Computing the expectations
-
+From $q^(ast)(sigma^(2))$ we needed
 $
-  bb(E)_(q(beta))[A]
+  nu = bb(E)_(q(beta))[A]
   &= bb(E)_(q(beta))[sum_(i=1)^(n) (y_(i) - beta x_(i))^(2) + frac(beta^(2), tau^(2))] \
   &= sum_(i=1)^(n) y_(i)^(2) - 2 sum_(i=1)^(n) y_(i) x_(i) bb(E)_(q(beta))[beta] + sum_(i=1)^(n) x_i^(2) bb(E)_(q(beta))[beta^(2)] + frac(1, tau^(2)) bb(E)_(q(beta))[beta^(2)]
 $
+Since $bb(E)_(q(beta))[beta] = mu_beta$ and $bb(E)_(q(beta))[beta^(2)] = mu_beta^(2) + sigma_beta^(2)$, we find
+$
+  bb(E)_(q(beta))[A] = sum_(i=1)^(n) y_i^(2) - 2 sum_(i=1)^(n) y_i x_i mu_beta + (sigma_(beta)^(2) + mu_(beta)^(2))(sum_(i=1)^(n) x_(i)^(2) + frac(1, tau^(2)))
+$
+
+== Computing the expectations
+#text(size: 20pt)[
+  From $q^(ast)(beta)$ we needed
+  $
+    bb(E)_(q(sigma^(2)))[frac(1, sigma^(2))]
+    &= integral frac(1, sigma^(2)) frac(nu^(frac(n+1, 2)), Gamma(frac(n+1, 2))) (sigma^(2))^(-frac(n+1, 2) - 1) exp(-frac(1, sigma^(2))nu) dif sigma^(2) \
+    &= frac(nu^(frac(n+1, 2)), Gamma(frac(n+1, 2))) integral (sigma^(2))^(-(frac(n+1, 2) + 1) - 1) exp(-frac(1, sigma^(2))nu) dif sigma^(2) \
+    &= frac(nu^(frac(n+1, 2)), Gamma(frac(n+1, 2))) frac(Gamma(frac(n+1, 2) + 1), nu^(frac(n+1, 2) + 1)) \
+    &= frac(n + 1, 2) (frac(1, 2) bb(E)_(q(beta))[A])^(-1)
+  $
+]
+==
+Jesus Christ...but we are not done yet! We have to iterate these updates until convergence, and this is measured by the change in ELBO.
 
 
-
-== Black-box variational inference (BBVI)
-OK
-
-== Example: Gaussian mixture model
-text
+== Computing the ELBO
+$
+  "ELBO"(q) = bb(E)_(q(beta, sigma^(2)))[log p(bold(x)|beta, sigma^(2))] + underbrace(bb(E)_(q(beta, sigma^(2)))[log frac(p(beta, sigma^(2)), q(beta, sigma^(2)))], "still unknown")
+$
+OK, we skip the details, but this in computable and we can use it to check for convergence.
 
 = Implementation
 
-= A more interesting example
+
+
+
+== Automatic differentiation VI @kucukelbir_automatic_2016
+The goal is to work for any model, and only requires that the user specifies $log p (bold(x), bold(z))$.
+
+Implemented in Stan @standev2018rstan!
 
 
 = Conclusion
