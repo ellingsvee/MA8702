@@ -18,23 +18,20 @@ SEED = 1
 TAU2 = 0.25
 BETA = 0.30
 SIGMA2 = 1.0
-N_SAMPLES = 1_000_000
-GENERATE_PLOTS = False
+# N_SAMPLES = 1_000_000
+N_SAMPLES = 1_000
+GENERATE_PLOTS = True
 DEVICE = "CPU"  # or "GPU"
 
 
-def update_device():
-    # Check if any GPU devices are available
-    gpus = jax.devices("gpu")
-    if gpus and DEVICE == "GPU":
-        default_device = gpus[0]
-        # print("Using:", default_device)
-    else:
-        default_device = jax.devices("cpu")[0]
-        # print("Using CPU:", default_device)
-
-    # Set this device as default
-    jax.config.update("jax_default_device", default_device)
+def set_device(device_name):
+    if device_name == "GPU":
+        devs = jax.devices("gpu")
+        if devs:
+            jax.config.update("jax_default_device", devs[0])
+            return True
+    jax.config.update("jax_default_device", jax.devices("cpu")[0])
+    return device_name == "CPU"
 
 
 def run_cavi(x: Array, y: Array) -> CAVIResult:
@@ -67,21 +64,22 @@ def main():
     key = jax.random.key(SEED)
     key, data_key, mcmc_key = jax.random.split(key, 3)
 
-    x = jnp.linspace(0, 1, N_SAMPLES)
+    x = jnp.linspace(0, 10, N_SAMPLES)
     y = generate_data(data_key, x, beta=BETA, sigma2=SIGMA2)
 
     cavi_result = run_cavi(x, y)
     states = run_mcmc(x, y, mcmc_key)
 
     if GENERATE_PLOTS:
+        print("Generating plots...")
         beta_samples = states.position[:, 0]
         sigma2_samples = jnp.exp(states.position[:, 1])
 
         # Only sample 1000 points for plotting
         n_plt_samples = min(1_000, N_SAMPLES)
         plot_data(
-            x[:n_plt_samples],
-            y[:n_plt_samples],
+            x,
+            y,
             beta=BETA,
             save_path=output / "data.svg",
         )
@@ -93,6 +91,7 @@ def main():
             sigma2_samples=sigma2_samples,
             save_path=output / "variational_distributions.svg",
         )
+        print("Plots saved to:", output)
 
 
 if __name__ == "__main__":

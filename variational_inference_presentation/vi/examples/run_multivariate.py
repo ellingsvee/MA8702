@@ -18,13 +18,13 @@ SEED = 42
 TAU2 = 0.25
 SIGMA2 = 1.0
 N_HMC_SAMPLES = 100
-GENERATE_PLOTS = False
+GENERATE_PLOTS = True
 
 # Problem sizes to benchmark
 SIZES = [
     (500, 10_000),
-    (1000, 20_000),
-    (2000, 40_000),
+    # (1000, 20_000),
+    # (2000, 40_000),
 ]
 
 
