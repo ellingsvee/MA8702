@@ -65,17 +65,19 @@ def cavi(
         return ll + lp_beta + lp_s2 + q_beta + q_sigma2
 
     def cond_fun(state):
-        sigma2_beta, nu, elbo, prev_elbo, it = state
+        _, _, elbo, prev_elbo, it = state
         converged = jnp.abs(elbo - prev_elbo) < tol
         return jnp.logical_and(~converged, it < max_iter)
 
     def body_fun(state):
-        sigma2_beta, nu, elbo, prev_elbo, it = state
+        sigma2_beta, _, elbo, _, it = state
 
+        # Update parameters
         E_A = sum_y2 - 2 * mu_beta * sum_xy + (sigma2_beta + mu_beta**2) * prec_factor
-
         nu_new = 0.5 * E_A
         sigma2_beta_new = (alpha / nu_new) / prec_factor
+
+        # For measuring convergence
         elbo_new = compute_elbo(sigma2_beta_new, nu_new)
 
         return (
@@ -87,7 +89,6 @@ def cavi(
         )
 
     init_sigma2_beta = sigma2_init / prec_factor
-
     init_nu = 0.5 * (
         sum_y2 - 2 * mu_beta * sum_xy + (init_sigma2_beta + mu_beta**2) * prec_factor
     )
@@ -100,9 +101,14 @@ def cavi(
         0,
     )
 
+    """
+    while cond_fun (ELBO not converged):
+        do body_fun
+    end
+    """
     final_state = jax.lax.while_loop(cond_fun, body_fun, init_state)
 
-    sigma2_beta_final, nu_final, elbo_final, _, n_iter = final_state
+    _, nu_final, elbo_final, _, _ = final_state
 
     return CAVIResult(
         mu_beta=mu_beta,

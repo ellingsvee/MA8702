@@ -68,7 +68,9 @@ def benchmark(P, N, device_name):
     jax.block_until_ready(_)
 
     t0 = time()
-    states, infos = mcmc.inference_loop(mk, kernel, init_state, num_samples=N_HMC_SAMPLES)
+    states, infos = mcmc.inference_loop(
+        mk, kernel, init_state, num_samples=N_HMC_SAMPLES
+    )
     jax.block_until_ready(states.position)
     hmc_t = time() - t0
 
@@ -102,13 +104,13 @@ def main():
     for P, N in SIZES:
         row = [f"{P}", f"{N:,}"]
         cpu = results["CPU"][(P, N)]
-        row += [f"{cpu['cavi_time']*1000:.1f}", f"{cpu['hmc_time']:.2f}"]
+        row += [f"{cpu['cavi_time'] * 1000:.1f}", f"{cpu['hmc_time']:.2f}"]
         if "GPU" in results:
             gpu = results["GPU"][(P, N)]
             cavi_speedup = cpu["cavi_time"] / gpu["cavi_time"]
             hmc_speedup = cpu["hmc_time"] / gpu["hmc_time"]
             row += [
-                f"{gpu['cavi_time']*1000:.1f}",
+                f"{gpu['cavi_time'] * 1000:.1f}",
                 f"{gpu['hmc_time']:.2f}",
                 f"{cavi_speedup:.1f}x",
                 f"{hmc_speedup:.1f}x",
@@ -117,7 +119,7 @@ def main():
 
     headers = ["P", "N", "CAVI CPU (ms)", f"HMC CPU (s, {N_HMC_SAMPLES} samples)"]
     if "GPU" in results:
-        headers += ["CAVI GPU (ms)", f"HMC GPU (s)", "CAVI speedup", "HMC speedup"]
+        headers += ["CAVI GPU (ms)", "HMC GPU (s)", "CAVI speedup", "HMC speedup"]
 
     print()
     print(tabulate(rows, headers=headers, tablefmt="github"))
@@ -128,10 +130,10 @@ def main():
     for P, N in SIZES:
         row = [f"{P}", f"{N:,}"]
         cpu = results["CPU"][(P, N)]
-        row.append(f"{cpu['hmc_time']/cpu['cavi_time']:.0f}x")
+        row.append(f"{cpu['hmc_time'] / cpu['cavi_time']:.0f}x")
         if "GPU" in results:
             gpu = results["GPU"][(P, N)]
-            row.append(f"{gpu['hmc_time']/gpu['cavi_time']:.0f}x")
+            row.append(f"{gpu['hmc_time'] / gpu['cavi_time']:.0f}x")
         ratio_rows.append(row)
 
     ratio_headers = ["P", "N", "HMC/CAVI (CPU)"]

@@ -1,9 +1,10 @@
 import jax
+from jax import Array
 import jax.numpy as jnp
 
 from time import time
 
-from vi.cavi import cavi
+from vi.cavi import cavi, CAVIResult
 from data import generate_data, make_logdensity
 from utils import plot_data, plot_variational_distributions
 
@@ -19,7 +20,7 @@ BETA = 0.30
 SIGMA2 = 1.0
 N_SAMPLES = 1_000_000
 GENERATE_PLOTS = False
-DEVICE = "GPU"  # or "GPU"
+DEVICE = "CPU"  # or "GPU"
 
 
 def update_device():
@@ -36,6 +37,29 @@ def update_device():
     jax.config.update("jax_default_device", default_device)
 
 
+def run_cavi(x: Array, y: Array) -> CAVIResult:
+    # CAVI
+    cavi_start_time = time()
+    cavi_result = cavi(x, y, sigma2_init=SIGMA2, tau2=TAU2)
+    cavi_end_time = time()
+    print(f"CAVI took {cavi_end_time - cavi_start_time:.2f} seconds")
+    return cavi_result
+
+
+def run_mcmc(x: Array, y: Array, mcmc_key: Array):
+    logdensity_fn = make_logdensity(x, y, TAU2)
+    initial_position = jnp.array([BETA, jnp.log(SIGMA2)])
+    initial_state = mcmc.init(initial_position, logdensity_fn)
+    kernel = mcmc.build_kernel(logdensity_fn, step_size=0.01, num_steps=10)
+
+    # Run chain
+    mcmc_start_time = time()
+    states, _ = mcmc.inference_loop(mcmc_key, kernel, initial_state, num_samples=10_000)
+    mcmc_end_time = time()
+    print(f"MCMC took {mcmc_end_time - mcmc_start_time:.2f} seconds")
+    return states
+
+
 def main():
     update_device()
     output.mkdir(exist_ok=True)
@@ -46,25 +70,8 @@ def main():
     x = jnp.linspace(0, 1, N_SAMPLES)
     y = generate_data(data_key, x, beta=BETA, sigma2=SIGMA2)
 
-    # CAVI
-    cavi_start_time = time()
-    cavi_result = cavi(x, y, sigma2_init=SIGMA2, tau2=TAU2)
-    cavi_end_time = time()
-    print(f"CAVI took {cavi_end_time - cavi_start_time:.2f} seconds")
-
-    # MCMC (HMC on [beta, log(sigma^2)])
-    logdensity_fn = make_logdensity(x, y, TAU2)
-    initial_position = jnp.array([BETA, jnp.log(SIGMA2)])
-    initial_state = mcmc.init(initial_position, logdensity_fn)
-
-    kernel = mcmc.build_kernel(logdensity_fn, step_size=0.01, num_steps=10)
-
-    mcmc_start_time = time()
-    states, infos = mcmc.inference_loop(
-        mcmc_key, kernel, initial_state, num_samples=10_000
-    )
-    mcmc_end_time = time()
-    print(f"MCMC took {mcmc_end_time - mcmc_start_time:.2f} seconds")
+    cavi_result = run_cavi(x, y)
+    states = run_mcmc(x, y, mcmc_key)
 
     if GENERATE_PLOTS:
         beta_samples = states.position[:, 0]
