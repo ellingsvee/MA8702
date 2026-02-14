@@ -1,16 +1,13 @@
-import jax
-from jax import Array
-import jax.numpy as jnp
-
+from pathlib import Path
 from time import time
 
-from vi.cavi import cavi, CAVIResult
-from data import generate_data, make_logdensity
-from utils import plot_data, plot_variational_distributions
-
+import jax
+import jax.numpy as jnp
 import vi.mcmc as mcmc
-
-from pathlib import Path
+from data import generate_data, make_logdensity
+from jax import Array
+from utils import plot_data, plot_variational_distributions
+from vi.cavi import CAVIResult, cavi
 
 output = Path("output")
 
@@ -49,9 +46,13 @@ def run_mcmc(x: Array, y: Array, mcmc_key: Array):
     initial_state = mcmc.init(initial_position, logdensity_fn)
     kernel = mcmc.build_kernel(logdensity_fn, step_size=0.01, num_steps=10)
 
+    _ = mcmc.inference_loop(mcmc_key, kernel, initial_state, num_samples=2)
+    jax.block_until_ready(_)
+
     # Run chain
     mcmc_start_time = time()
     states, _ = mcmc.inference_loop(mcmc_key, kernel, initial_state, num_samples=10_000)
+    jax.block_until_ready(states.position)
     mcmc_end_time = time()
     print(f"MCMC took {mcmc_end_time - mcmc_start_time:.2f} seconds")
     return states

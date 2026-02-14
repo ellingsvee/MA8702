@@ -53,6 +53,7 @@ def cavi_multivariate(
 
     # Precompute P^{-1} for covariance and trace computation
     P_inv = jnp.linalg.solve(P, jnp.eye(p))  # (p, p)
+    tr_P_inv = jnp.trace(P_inv)
 
     # Precompute trace(XtX @ P_inv) for nu update
     tr_XtX_Pinv = jnp.trace(XtX @ P_inv)
@@ -104,19 +105,8 @@ def cavi_multivariate(
     def body_fun(state):
         nu, elbo, prev_elbo, it = state
 
-        # Update nu: E[1/(2sigma^2) * (||y - X beta||^2 + beta^T beta / tau^2)]
-        # = 0.5 * (rss + (nu/alpha)*tr_XtX_Pinv + (mu@mu + (nu/alpha)*trace(P_inv))/tau2)
-        # But nu appears on both sides, so solve:
-        # nu = 0.5 * (rss + mu@mu/tau2) + 0.5 * (nu/alpha) * (tr_XtX_Pinv + trace(P_inv)/tau2)
-        # Let A = 0.5*(rss + mu@mu/tau2), B = 0.5/alpha * (tr_XtX_Pinv + trace(P_inv)/tau2)
-        # nu = A + B*nu  =>  nu(1-B) = A  =>  nu = A/(1-B)
-        # But note: (tr_XtX_Pinv + trace(P_inv)/tau2) = trace((XtX + I/tau2) @ P_inv) = trace(P @ P_inv) = trace(I_p) = p
-        # So B = 0.5*p/alpha = p/(n+p)
-        # And 1-B = n/(n+p), so nu = A * (n+p)/n
-
         # Simpler derivation: nu = 0.5 * E[||y - X beta||^2 + beta^T beta / tau^2]
         # Using current q(sigma^2) to get Sigma = (nu/alpha)*P_inv:
-        tr_P_inv = jnp.trace(P_inv)
         E_residual = rss + (nu / alpha) * tr_XtX_Pinv
         E_beta2 = mu @ mu + (nu / alpha) * tr_P_inv
 
