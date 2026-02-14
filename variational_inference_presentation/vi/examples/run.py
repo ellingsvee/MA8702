@@ -1,11 +1,11 @@
+import jax
 import jax.numpy as jnp
-import matplotlib.pyplot as plt
-from scipy.stats import norm, invgamma
-import numpy as np
 
 from vi.data import generate_data
 from vi.cavi import cavi
-from utils import plot_data
+from utils import plot_data, plot_variational_distributions
+
+import vi.mcmc as mcmc
 
 from pathlib import Path
 
@@ -17,55 +17,63 @@ BETA = 0.30
 SIGMA2 = 1.0
 
 
-def plot_variational_distributions(result, save_path=None):
-    fig, axes = plt.subplots(1, 3, figsize=(14, 4))
+def make_logdensity(x, y, tau2):
+    n = x.shape[0]
 
-    # q(beta) = N(mu_beta, sigma2_beta)
-    mu = float(result.mu_beta)
-    sd = float(result.sigma2_beta[-1] ** 0.5)
-    beta_grid = np.linspace(mu - 4 * sd, mu + 4 * sd, 200)
-    axes[0].plot(beta_grid, norm.pdf(beta_grid, mu, sd))
-    axes[0].axvline(BETA, color="red", linestyle="--", label=rf"true $\beta$ = {BETA}")
-    axes[0].set_xlabel(r"$\beta$")
-    axes[0].set_title(r"$q(\beta)$")
-    axes[0].legend()
+    def logdensity_fn(params):
+        beta, log_sigma2 = params[0], params[1]
+        sigma2 = jnp.exp(log_sigma2)
 
-    # q(sigma^2) = InvGamma(alpha, nu)
-    alpha = float(result.alpha)
-    nu = float(result.nu[-1])
-    s2_grid = np.linspace(0.01, nu / (alpha - 1) * 3, 200)
-    axes[1].plot(s2_grid, invgamma.pdf(s2_grid, a=alpha, scale=nu))
-    axes[1].axvline(
-        SIGMA2, color="red", linestyle="--", label=rf"true $\sigma^2$ = {SIGMA2}"
-    )
-    axes[1].set_xlabel(r"$\sigma^2$")
-    axes[1].set_title(r"$q(\sigma^2)$")
-    axes[1].legend()
+        # log p(y | beta, sigma^2)
+        residuals = y - x * beta
+        ll = -n / 2 * jnp.log(2 * jnp.pi * sigma2) - jnp.sum(residuals**2) / (
+            2 * sigma2
+        )
 
-    # ELBO convergence
-    axes[2].plot(np.arange(1, len(result.elbo) + 1), result.elbo)
-    axes[2].set_xlabel("Iteration")
-    axes[2].set_ylabel("ELBO")
-    axes[2].set_title("ELBO convergence")
+        # log p(beta | sigma^2) ~ N(0, tau2 * sigma^2)
+        lp_beta = -0.5 * jnp.log(2 * jnp.pi * tau2 * sigma2) - beta**2 / (
+            2 * tau2 * sigma2
+        )
 
-    fig.tight_layout()
-    if save_path is not None:
-        fig.savefig(save_path)
-        plt.close(fig)
-    else:
-        plt.show()
+        # Jeffreys prior p(sigma^2) ∝ 1/sigma^2 cancels with Jacobian of log-transform
+        return ll + lp_beta
+
+    return logdensity_fn
 
 
 def main():
     output.mkdir(exist_ok=True)
 
+    key = jax.random.key(SEED)
+    key, data_key, mcmc_key = jax.random.split(key, 3)
+
     x = jnp.linspace(0, 1, 100)
-    y = generate_data(x, beta=BETA, sigma2=SIGMA2, seed=SEED)
+    y = generate_data(data_key, x, beta=BETA, sigma2=SIGMA2)
     plot_data(x, y, beta=BETA, save_path=output / "data.svg")
 
-    result = cavi(x, y, sigma2_init=SIGMA2, tau2=TAU2)
+    # CAVI
+    cavi_result = cavi(x, y, sigma2_init=SIGMA2, tau2=TAU2)
+
+    # MCMC (HMC on [beta, log(sigma^2)])
+    logdensity_fn = make_logdensity(x, y, TAU2)
+    initial_position = jnp.array([BETA, jnp.log(SIGMA2)])
+    initial_state = mcmc.init(initial_position, logdensity_fn)
+
+    kernel = mcmc.build_kernel(logdensity_fn, step_size=0.01, num_steps=10)
+    states, infos = mcmc.inference_loop(
+        mcmc_key, kernel, initial_state, num_samples=10_000
+    )
+
+    beta_samples = states.position[:, 0]
+    sigma2_samples = jnp.exp(states.position[:, 1])
+
     plot_variational_distributions(
-        result, save_path=output / "variational_distributions.svg"
+        cavi_result,
+        beta_true=BETA,
+        sigma2_true=SIGMA2,
+        beta_samples=beta_samples,
+        sigma2_samples=sigma2_samples,
+        save_path=output / "variational_distributions.svg",
     )
 
 
