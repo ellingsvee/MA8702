@@ -84,10 +84,6 @@ We want to evaluate the posterior $p(bold(z)|bold(x))$. However, the marginal li
 Variational inference (VI) attempts to _reframe_ the Bayesian inference problem as an optimization problem. Optimization, which involves taking derivatives instead of integrating, is generally faster (and easier?).
 
 
-
-
-
-= Objective
 == Variational objective
 
 // Optimization, which involves taking derivatives instead of integrating, is much easier and generally faster than the latter.
@@ -132,9 +128,7 @@ $
 it gives a lower bound for the log marginal likelihood.
 
 
-= Optimization
 ==
-
 To make optimization easier, we have to constrain the family of densities $cal(D)$.
 
 // F.ex. we could assume $q(bold(z)) tilde.op cal(N)(bold(mu), bold(upright(Sigma)))$. However, instead of restricting the parametric form of the variational distribution $q(bold(z))$, we usually make an independence assumption.
@@ -416,36 +410,35 @@ $
     &= frac(n + 1, 2) (frac(1, 2) bb(E)_(q(beta))[A])^(-1)
   $
 ]
-==
-Jesus Christ...but we are not done yet! We have to iterate these updates until convergence, and this is measured by the change in ELBO.
 
 
 == Computing the ELBO
+Jesus Christ...but we are not done yet! We have to iterate these updates until convergence, and this is measured by the change in ELBO.
 $
   "ELBO"(q) = bb(E)_(q(beta, sigma^(2)))[log p(bold(x)|beta, sigma^(2))] + underbrace(bb(E)_(q(beta, sigma^(2)))[log frac(p(beta, sigma^(2)), q(beta, sigma^(2)))], "still unknown")
 $
 OK, we skip the details, but this in computable and we can use it to check for convergence.
 
-= Implementation
-
-
-
-
-== Automatic differentiation VI @kucukelbir_automatic_2016
-The goal is to work for any model, and only requires that the user specifies $log p (bold(x), bold(z))$.
-
-Implemented in Stan @standev2018rstan!
-
+= Implementation and experimentation
 
 = Conclusion
+
 == Open problems
 - Other distance measures that KL
 - Alternatives to mean-field
   - Add dependencies between latent variables (_structured VI_)
-  - Mixture of variational densities
-- Interface between VI and MCMC
 - Statistical properties of VI
-- Developing generic VI algorithms that are easy to apply to a wide class of models.
+
+== Automatic differentiation VI @kucukelbir_automatic_2016
+- The goal is to work for any model, and only requires that the user specifies $log p (bold(x), bold(z))$.
+- Assume the variational family is a mean-field Gaussian with diagonal covariance matrix.
+- Implemented in Stan @standev2018rstan!
+- Some tests I did with the multivariate regression model
+  - Relatively good approximation, but not perfect.
+  - Faster than MCMC, but much slower than CAVI.
+  - Much easier to implement!
+
+
 
 
 
