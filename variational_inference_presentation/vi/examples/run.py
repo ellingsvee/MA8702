@@ -3,10 +3,10 @@ from time import time
 
 import jax
 import jax.numpy as jnp
-from mcmc import hamiltonian, inference_loop
 from data import generate_data, make_logdensity
 from jax import Array
-from utils import plot_data, plot_variational_distributions
+from mcmc import hamiltonian, inference_loop
+from utils import plot_data, plot_joint_posterior, plot_variational_distributions
 from vi.cavi import CAVIResult, cavi
 
 output = Path("output")
@@ -91,6 +91,17 @@ def main():
             beta_samples=beta_samples,
             sigma2_samples=sigma2_samples,
             save_path=output / "variational_distributions.svg",
+        )
+        plot_joint_posterior(
+            cavi_result,
+            beta_samples=beta_samples,
+            sigma2_samples=sigma2_samples,
+            beta_true=BETA,
+            sigma2_true=SIGMA2,
+            x=x,
+            y=y,
+            tau2=TAU2,
+            save_path=output / "joint_posterior.svg",
         )
         print("Plots saved to:", output)
 

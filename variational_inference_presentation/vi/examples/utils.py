@@ -3,6 +3,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from jax import Array
+from scipy.special import loggamma
 from scipy.stats import invgamma, norm
 from vi.advi_multivariate import MultivariateADVIResult
 from vi.cavi import CAVIResult
@@ -273,19 +274,26 @@ def plot_beta_marginals(
             advi_mu = np.asarray(advi_result.mu)
             advi_sd = np.sqrt(np.diag(np.asarray(advi_result.Sigma)))
             advi_mu_j, advi_sd_j = float(advi_mu[j]), float(advi_sd[j])
-            ax.plot(grid, norm.pdf(grid, advi_mu_j, advi_sd_j), linestyle="--", label="ADVI")
+            ax.plot(
+                grid, norm.pdf(grid, advi_mu_j, advi_sd_j), linestyle="--", label="ADVI"
+            )
 
         if beta_samples is not None:
             ax.hist(
                 np.asarray(beta_samples[:, j]),
-                bins=30, density=True, alpha=0.7, label="HMC",
+                bins=50,
+                density=True,
+                alpha=1.0,
+                label="HMC",
             )
 
         ax.axvline(
-            float(beta_true_np[j]), color="red", linestyle="--",
-            label=rf"$\beta_{{{j+1}}}^{{\mathrm{{true}}}}$",
+            float(beta_true_np[j]),
+            color="red",
+            linestyle="--",
+            label=rf"$\beta_{{{j + 1}}}^{{\mathrm{{true}}}}$",
         )
-        ax.set_xlabel(rf"$\beta_{{{j+1}}}$")
+        ax.set_xlabel(rf"$\beta_{{{j + 1}}}$")
         ax.legend(fontsize=8)
 
     fig.tight_layout()
@@ -336,6 +344,191 @@ def plot_posterior_sd(
     ax.legend()
 
     fig.tight_layout()
+    if save_path is not None:
+        fig.savefig(save_path)
+        plt.close(fig)
+    else:
+        plt.show()
+
+
+def plot_joint_posterior(
+    result: CAVIResult,
+    beta_samples: Array,
+    sigma2_samples: Array,
+    beta_true: float,
+    sigma2_true: float,
+    x: Array,
+    y: Array,
+    tau2: float,
+    save_path: os.PathLike | None = None,
+):
+    """Plot 2D joint posterior to demonstrate mean-field assumption limitation.
+
+    Shows:
+    - HMC samples (scatter + contours) - captures true correlation
+    - CAVI approximation (axis-aligned contours) - mean-field assumption
+    - True Normal-inverse-gamma posterior (optional contours)
+
+    This clearly demonstrates that CAVI cannot model correlation between beta and sigma2.
+    """
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    # Convert samples to numpy
+    beta_hmc = np.asarray(beta_samples)
+    sigma2_hmc = np.asarray(sigma2_samples)
+
+    # Plot HMC samples as scatter
+    ax.scatter(beta_hmc, sigma2_hmc, s=1, alpha=0.5, color="gray", label="HMC samples")
+
+    # Create grid for contour plots
+    beta_mean = beta_hmc.mean()
+    beta_std = beta_hmc.std()
+    sigma2_mean = sigma2_hmc.mean()
+    sigma2_std = sigma2_hmc.std()
+
+    beta_grid = np.linspace(beta_mean - 4 * beta_std, beta_mean + 4 * beta_std, 200)
+    sigma2_grid = np.linspace(
+        max(0.01, sigma2_mean - 4 * sigma2_std), sigma2_mean + 4 * sigma2_std, 200
+    )
+    Beta, Sigma2 = np.meshgrid(beta_grid, sigma2_grid)
+
+    # Compute true Normal-inverse-gamma posterior
+    # For conjugate model: p(beta, sigma2 | x, y) is Normal-inverse-gamma
+    n = len(x)
+    x_arr = np.asarray(x)
+    y_arr = np.asarray(y)
+
+    sum_x2 = np.sum(x_arr**2)
+    sum_xy = np.sum(x_arr * y_arr)
+    sum_y2 = np.sum(y_arr**2)
+
+    # Posterior hyperparameters for Normal-inverse-gamma
+    prec_n = sum_x2 + 1.0 / tau2  # posterior precision scaling
+    mu_n = sum_xy / prec_n  # posterior mean of beta | sigma2
+
+    # For inverse-gamma part
+    alpha_n = (n + 1.0) / 2.0
+
+    # Compute log probability on grid for true posterior
+    def true_log_posterior(beta_val, sigma2_val):
+        lambda_val = prec_n
+        mu_val = sum_xy / prec_n
+        gamma_val = 0.5 * (sum_y2 - sum_xy**2 / prec_n)
+
+        logp_true = alpha_n * np.log(gamma_val) - loggamma(alpha_n)
+        logp_true += (-alpha_n - 1) * np.log(sigma2_val)
+        logp_true -= (2 * gamma_val + lambda_val * (beta_val - mu_val) ** 2) / (
+            2 * sigma2_val
+        )
+        return logp_true
+
+    # Vectorized computation for true posterior
+    true_log_prob = np.vectorize(true_log_posterior)(Beta, Sigma2)
+    true_prob = np.exp(
+        true_log_prob - true_log_prob.max()
+    )  # normalize for numerical stability
+
+    # Plot true posterior contours
+    levels_true = np.linspace(true_prob.max() * 0.01, true_prob.max() * 0.9, 8)
+    contour_true = ax.contour(
+        Beta,
+        Sigma2,
+        true_prob,
+        levels=levels_true,
+        colors="red",
+        linewidths=1.5,
+        alpha=1.0,
+    )
+
+    # CAVI approximation: q(beta) * q(sigma2) - independent!
+    mu_beta = float(result.mu_beta)
+    sigma2_beta = float(result.sigma2_beta)
+    alpha = float(result.alpha)
+    nu = float(result.nu)
+
+    # Compute CAVI densities on grid
+    # q(beta) = N(mu_beta, sigma2_beta)
+    q_beta = norm.pdf(beta_grid, mu_beta, np.sqrt(sigma2_beta))
+
+    # q(sigma2) = InvGamma(alpha, nu)
+    q_sigma2 = invgamma.pdf(sigma2_grid, a=alpha, scale=nu)
+
+    # Joint density under mean-field: q(beta) * q(sigma2)
+    # This will produce AXIS-ALIGNED contours (no correlation)
+    # Use outer product to get 2D density
+    cavi_joint = np.outer(q_sigma2, q_beta)
+
+    # Plot CAVI contours
+    levels_cavi = np.linspace(cavi_joint.max() * 0.01, cavi_joint.max() * 0.9, 8)
+    contour_cavi = ax.contour(
+        Beta,
+        Sigma2,
+        cavi_joint,
+        levels=levels_cavi,
+        colors="blue",
+        linewidths=1.5,
+        linestyles="--",
+        alpha=1.0,
+    )
+
+    # Add true parameter values
+    ax.axvline(
+        beta_true,
+        color="black",
+        linestyle=":",
+        linewidth=2,
+        label=f"True β={beta_true}",
+    )
+    ax.axhline(
+        sigma2_true,
+        color="black",
+        linestyle=":",
+        linewidth=2,
+        label=f"True σ²={sigma2_true}",
+    )
+    ax.plot(beta_true, sigma2_true, "k*", markersize=15, label="True parameters")
+
+    ax.set_xlabel(r"$\beta$", fontsize=12)
+    ax.set_ylabel(r"$\sigma^2$", fontsize=12)
+
+    # Create custom legend
+    from matplotlib.lines import Line2D
+
+    legend_elements = [
+        Line2D(
+            [0],
+            [0],
+            color="gray",
+            marker="o",
+            linestyle="",
+            markersize=5,
+            alpha=0.5,
+            label="HMC samples",
+        ),
+        Line2D([0], [0], color="red", linewidth=1.5, label="True posterior"),
+        Line2D(
+            [0],
+            [0],
+            color="blue",
+            linewidth=1.5,
+            linestyle="--",
+            label="CAVI",
+        ),
+        Line2D(
+            [0],
+            [0],
+            color="black",
+            marker="*",
+            linestyle="",
+            markersize=10,
+            label="True parameters",
+        ),
+    ]
+    ax.legend(handles=legend_elements, loc="best", fontsize=10)
+
+    ax.grid(alpha=0.3)
+    fig.tight_layout()
+
     if save_path is not None:
         fig.savefig(save_path)
         plt.close(fig)
