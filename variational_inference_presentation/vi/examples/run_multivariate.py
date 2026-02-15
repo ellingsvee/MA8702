@@ -104,8 +104,7 @@ def benchmark(P, N, device_name):
     y = generate_multivariate_data(dk, X, beta_true, sigma2=SIGMA2)
 
     cavi_result, cavi_time = run_cavi(X, y)
-    # advi_result, advi_time = run_advi(X, y, ak)
-    advi_result, advi_time = run_advi(X, y, ak)
+    advi_result, advi_time = run_advi(X, y, ak, n_steps=5000)
     states, infos, hmc_time = run_hmc(X, y, mk)
 
     return {
