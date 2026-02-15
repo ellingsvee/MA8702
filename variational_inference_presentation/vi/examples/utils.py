@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from jax import Array
 from scipy.stats import invgamma, norm
+from vi.advi_multivariate import MultivariateADVIResult
 from vi.cavi import CAVIResult
 from vi.cavi_multivariate import MultivariateCAVIResult
 
@@ -82,15 +83,19 @@ def plot_beta_scatter(
     cavi_result: MultivariateCAVIResult,
     beta_true: Array,
     beta_samples: Array | None = None,
+    advi_result: MultivariateADVIResult | None = None,
     save_path: os.PathLike | None = None,
 ):
-    """True beta vs posterior mean for CAVI and HMC."""
+    """True beta vs posterior mean for CAVI, ADVI, and HMC."""
     fig, ax = plt.subplots(figsize=(5, 5))
 
     beta_true_np = np.asarray(beta_true)
     mu_np = np.asarray(cavi_result.mu)
 
     ax.scatter(beta_true_np, mu_np, s=8, alpha=0.6, label="CAVI")
+    if advi_result is not None:
+        advi_mu = np.asarray(advi_result.mu)
+        ax.scatter(beta_true_np, advi_mu, s=8, alpha=0.6, marker="^", label="ADVI")
     if beta_samples is not None:
         hmc_means = np.asarray(beta_samples.mean(axis=0))
         ax.scatter(beta_true_np, hmc_means, s=8, alpha=0.6, marker="x", label="HMC")
@@ -155,17 +160,19 @@ def plot_beta_intervals(
     cavi_result: MultivariateCAVIResult,
     beta_true: Array,
     beta_samples: Array | None = None,
+    advi_result: MultivariateADVIResult | None = None,
     n_show: int = 20,
     save_path: os.PathLike | None = None,
 ):
-    """95% credible intervals for selected beta components (CAVI vs HMC)."""
+    """95% credible intervals for selected beta components (CAVI, ADVI, HMC)."""
     mu_np = np.asarray(cavi_result.mu)
     sd_np = np.sqrt(np.diag(np.asarray(cavi_result.Sigma)))
     beta_true_np = np.asarray(beta_true)
 
     p = len(mu_np)
     idx = np.arange(min(n_show, p))
-    offset = 0.15
+    n_methods = 1 + (advi_result is not None) + (beta_samples is not None)
+    offset = 0.2 if n_methods == 3 else 0.15
 
     fig, ax = plt.subplots(figsize=(6, 0.35 * len(idx) + 1))
 
@@ -181,6 +188,21 @@ def plot_beta_intervals(
         capsize=3,
         label="CAVI 95% CI",
     )
+
+    if advi_result is not None:
+        advi_mu = np.asarray(advi_result.mu)
+        advi_sd = np.sqrt(np.diag(np.asarray(advi_result.Sigma)))
+        advi_lo = advi_mu[idx] - 1.96 * advi_sd[idx]
+        advi_hi = advi_mu[idx] + 1.96 * advi_sd[idx]
+        ax.errorbar(
+            advi_mu[idx],
+            idx,
+            xerr=[advi_mu[idx] - advi_lo, advi_hi - advi_mu[idx]],
+            fmt="^",
+            markersize=4,
+            capsize=3,
+            label="ADVI 95% CI",
+        )
 
     if beta_samples is not None:
         samples_np = np.asarray(beta_samples[:, idx])
@@ -225,10 +247,11 @@ def plot_beta_marginals(
     cavi_result: MultivariateCAVIResult,
     beta_true: Array,
     beta_samples: Array | None = None,
+    advi_result: MultivariateADVIResult | None = None,
     indices: list[int] | None = None,
     save_path: os.PathLike | None = None,
 ):
-    """Marginal posteriors for selected beta components: CAVI Normal vs HMC histogram."""
+    """Marginal posteriors for selected beta components: CAVI Normal, ADVI Normal, HMC histogram."""
     mu_np = np.asarray(cavi_result.mu)
     sd_np = np.sqrt(np.diag(np.asarray(cavi_result.Sigma)))
     beta_true_np = np.asarray(beta_true)
@@ -244,7 +267,13 @@ def plot_beta_marginals(
     for ax, j in zip(axes, indices):
         mu_j, sd_j = float(mu_np[j]), float(sd_np[j])
         grid = np.linspace(mu_j - 4 * sd_j, mu_j + 4 * sd_j, 200)
-        ax.plot(grid, norm.pdf(grid, mu_j, sd_j), label=r"$q(\beta_{" + str(j + 1) + r"})$")
+        ax.plot(grid, norm.pdf(grid, mu_j, sd_j), label="CAVI")
+
+        if advi_result is not None:
+            advi_mu = np.asarray(advi_result.mu)
+            advi_sd = np.sqrt(np.diag(np.asarray(advi_result.Sigma)))
+            advi_mu_j, advi_sd_j = float(advi_mu[j]), float(advi_sd[j])
+            ax.plot(grid, norm.pdf(grid, advi_mu_j, advi_sd_j), linestyle="--", label="ADVI")
 
         if beta_samples is not None:
             ax.hist(
@@ -258,6 +287,26 @@ def plot_beta_marginals(
         )
         ax.set_xlabel(rf"$\beta_{{{j+1}}}$")
         ax.legend(fontsize=8)
+
+    fig.tight_layout()
+    if save_path is not None:
+        fig.savefig(save_path)
+        plt.close(fig)
+    else:
+        plt.show()
+
+
+def plot_elbo_convergence(
+    elbo_history: Array,
+    save_path: os.PathLike | None = None,
+):
+    """ADVI ELBO vs iteration."""
+    fig, ax = plt.subplots(figsize=(6, 4))
+    elbo_np = np.asarray(elbo_history)
+    ax.plot(elbo_np, linewidth=0.8)
+    ax.set_xlabel("Iteration")
+    ax.set_ylabel("ELBO")
+    ax.set_title("ADVI convergence")
 
     fig.tight_layout()
     if save_path is not None:

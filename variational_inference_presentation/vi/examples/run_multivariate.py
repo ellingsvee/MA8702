@@ -3,14 +3,16 @@ from time import time
 
 import jax
 import jax.numpy as jnp
-from mcmc import hamiltonian, inference_loop
 from data import generate_multivariate_data, make_multivariate_logdensity
+from mcmc import hamiltonian, inference_loop
 from tabulate import tabulate
 from utils import (
     plot_beta_intervals,
     plot_beta_marginals,
     plot_beta_scatter,
+    plot_elbo_convergence,
 )
+from vi.advi_multivariate import advi_multivariate
 from vi.cavi_multivariate import cavi_multivariate
 
 output = Path("output_multivariate")
@@ -71,24 +73,47 @@ def run_hmc(X, y, key):
     return states, infos, elapsed
 
 
+def run_advi(X, y, key, n_steps=5000):
+    """Run ADVI with warmup, return (result, elapsed_seconds)."""
+    P = X.shape[1]
+    logdensity_fn = make_multivariate_logdensity(X, y, TAU2)
+
+    _ = advi_multivariate(logdensity_fn, P + 1, n_steps=10, n_samples=8, key=key)
+    jax.block_until_ready(_)
+
+    t0 = time()
+    result = advi_multivariate(
+        logdensity_fn, P + 1, n_steps=n_steps, n_samples=8, key=key
+    )
+    jax.block_until_ready(result)
+    elapsed = time() - t0
+
+    print(f"  ADVI took {elapsed:.2f} s ({n_steps} steps)")
+    return result, elapsed
+
+
 def benchmark(P, N, device_name):
     """Generate data and run both methods at a given problem size."""
     set_device(device_name)
 
     key = jax.random.key(SEED)
-    key, xk, bk, dk, mk = jax.random.split(key, 5)
+    key, xk, bk, dk, mk, ak = jax.random.split(key, 6)
 
     X = jax.random.normal(xk, shape=(N, P))
     beta_true = jax.random.normal(bk, shape=(P,)) * 0.5
     y = generate_multivariate_data(dk, X, beta_true, sigma2=SIGMA2)
 
     cavi_result, cavi_time = run_cavi(X, y)
+    # advi_result, advi_time = run_advi(X, y, ak)
+    advi_result, advi_time = run_advi(X, y, ak)
     states, infos, hmc_time = run_hmc(X, y, mk)
 
     return {
         "cavi_time": cavi_time,
+        "advi_time": advi_time,
         "hmc_time": hmc_time,
         "cavi_result": cavi_result,
+        "advi_result": advi_result,
         "beta_true": beta_true,
         "states": states,
         "infos": infos,
@@ -105,22 +130,42 @@ def print_tables(results):
     for P, N in SIZES:
         row = [f"{P}", f"{N:,}"]
         cpu = results["CPU"][(P, N)]
-        row += [f"{cpu['cavi_time'] * 1000:.1f}", f"{cpu['hmc_time']:.2f}"]
+        row += [
+            f"{cpu['cavi_time'] * 1000:.1f}",
+            f"{cpu['advi_time']:.2f}",
+            f"{cpu['hmc_time']:.2f}",
+        ]
         if has_gpu:
             gpu = results["GPU"][(P, N)]
             cavi_speedup = cpu["cavi_time"] / gpu["cavi_time"]
+            advi_speedup = cpu["advi_time"] / gpu["advi_time"]
             hmc_speedup = cpu["hmc_time"] / gpu["hmc_time"]
             row += [
                 f"{gpu['cavi_time'] * 1000:.1f}",
+                f"{gpu['advi_time']:.2f}",
                 f"{gpu['hmc_time']:.2f}",
                 f"{cavi_speedup:.1f}x",
+                f"{advi_speedup:.1f}x",
                 f"{hmc_speedup:.1f}x",
             ]
         rows.append(row)
 
-    headers = ["P", "N", "CAVI CPU (ms)", f"HMC CPU (s, {N_HMC_SAMPLES} samples)"]
+    headers = [
+        "P",
+        "N",
+        "CAVI CPU (ms)",
+        "ADVI CPU (s)",
+        f"HMC CPU (s, {N_HMC_SAMPLES} samples)",
+    ]
     if has_gpu:
-        headers += ["CAVI GPU (ms)", "HMC GPU (s)", "CAVI speedup", "HMC speedup"]
+        headers += [
+            "CAVI GPU (ms)",
+            "ADVI GPU (s)",
+            "HMC GPU (s)",
+            "CAVI speedup",
+            "ADVI speedup",
+            "HMC speedup",
+        ]
 
     print()
     print(tabulate(rows, headers=headers, tablefmt="fancy_grid"))
@@ -150,7 +195,6 @@ def generate_plots(results, device):
     r = results[device][(P, N)]
 
     beta_samples = r["states"].position[:, :P]
-    sigma2_samples = jnp.exp(r["states"].position[:, P])
 
     print("Generating plots...")
 
@@ -158,19 +202,26 @@ def generate_plots(results, device):
         r["cavi_result"],
         beta_true=r["beta_true"],
         beta_samples=beta_samples,
+        advi_result=r["advi_result"],
         save_path=output / "beta_scatter.svg",
     )
     plot_beta_intervals(
         r["cavi_result"],
         beta_true=r["beta_true"],
         beta_samples=beta_samples,
+        advi_result=r["advi_result"],
         save_path=output / "beta_intervals.svg",
     )
     plot_beta_marginals(
         r["cavi_result"],
         beta_true=r["beta_true"],
         beta_samples=beta_samples,
+        advi_result=r["advi_result"],
         save_path=output / "beta_marginals.svg",
+    )
+    plot_elbo_convergence(
+        r["advi_result"].elbo_history,
+        save_path=output / "advi_elbo.svg",
     )
 
     print("Plots saved to:", output)

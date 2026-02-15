@@ -1,8 +1,9 @@
+from typing import NamedTuple
+
 import jax
 import jax.numpy as jnp
 from jax import Array
 from jax.scipy.special import digamma, gammaln
-from typing import NamedTuple
 
 
 class MultivariateCAVIResult(NamedTuple):
@@ -23,6 +24,7 @@ class MultivariateCAVIResult(NamedTuple):
     alpha: float
     nu: Array
     elbo: Array
+    iterations: int
 
 
 @jax.jit(static_argnames=("max_iter", "tol"))
@@ -124,7 +126,7 @@ def cavi_multivariate(
 
     final_state = jax.lax.while_loop(cond_fun, body_fun, init_state)
 
-    nu_final, elbo_final, _, _ = final_state
+    nu_final, elbo_final, _, it_final = final_state
 
     Sigma = (nu_final / alpha) * P_inv
 
@@ -134,4 +136,5 @@ def cavi_multivariate(
         alpha=alpha,
         nu=nu_final,
         elbo=elbo_final,
+        iterations=it_final,
     )
