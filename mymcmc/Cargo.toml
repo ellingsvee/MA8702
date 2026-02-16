@@ -1,0 +1,20 @@
+[package]
+name = "mymcmc"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+burn = { version = "0.20.1", features = ["autodiff", "ndarray"] }
+ndarray = "0.17.2"
+num-traits = "0.2.19"
+rand = "0.10.0"
+rand_distr = "0.6.0"
+statrs = "0.18.0"
+
+[dev-dependencies]
+flamegraph = "0.6.11"
+hyperfine = "1.20.0"
+plotly = "0.14.1"
+
+[profile.release]
+debug = true
