@@ -64,11 +64,11 @@
   )
 })
 
+#let tcite(body) = cite(body, form: "prose")
+
 
 #title-slide[
   = Variational Inference
-  // A Review for Statisticians
-  // #cite(<blei_variational_2017>, form: "prose")
 ]
 
 == Problem
@@ -77,6 +77,13 @@ $
   underbrace(p(bold(z)|bold(x)), "Posterior") = underbrace(p(bold(z)), "Prior") dot frac(overbrace(p(bold(x)|bold(z)), "Likelihood"), underbrace(integral p(bold(x)|bold(z)) p(bold(z)) dif bold(z), "Marginal likelihood")).
 $
 We want to evaluate the posterior $p(bold(z)|bold(x))$. However, the marginal likelihood $p(bold(x))$ is often hard to compute.
+
+== Applications mentioned in #tcite(<blei_variational_2017>)
+- Computational biology
+- Computer vision and robotics
+- Computational neuroscience
+- Natural language processing and speech recognition
+- Other applications (notably generative models)
 
 == Variational inference
 
@@ -123,7 +130,7 @@ $
 #pause
 Additionally, since
 $
-  log p(bold(x)) = "ELBO"(q) + "KL"(q(bold(z))||p(bold(z)|bold(x))) > "ELBO"(q),
+  log p(bold(x)) = "ELBO"(q) + "KL"(q(bold(z))||p(bold(z)|bold(x))) >= "ELBO"(q),
 $
 it gives a lower bound for the log marginal likelihood.
 
@@ -155,7 +162,7 @@ $
     "ELBO"(q_(j))
     &= integral product_(i=1)^(m) q_(i)(z_(i)) log p(bold(z), bold(x)) dif bold(z) - integral product_(i=1)^(m) q_(i)(z_(i)) log product_(i=1)^(m) q_(i)(z_(i)) dif bold(z) \
     &prop integral product_(i=1)^(m) q_(i)(z_(i)) log p(bold(z), bold(x)) dif bold(z) - integral q_(j)(z_(j)) log q_(j)(z_(j)) dif z_(j) \
-    &= integral q_(j)(z_(j)) (product_(i eq.not j) q_(i)(z_(i)) log p(bold(z), bold(x)) dif bold(z)_(-j)) dif z_(j) - integral q_(j)(z_(j)) log q_(j)(z_(j)) dif z_(j) \
+    &= integral q_(j)(z_(j)) (integral product_(i eq.not j) q_(i)(z_(i)) log p(bold(z), bold(x)) dif bold(z)_(-j)) dif z_(j) - integral q_(j)(z_(j)) log q_(j)(z_(j)) dif z_(j) \
     &= integral q_(j)(z_(j)) bb(E)_(q(bold(z)_(-j)))[log p(bold(z), bold(x))] dif z_(j) - integral q_(j)(z_(j)) log q_(j)(z_(j)) dif z_(j) \
   $
 ]
@@ -183,14 +190,16 @@ $
 
 
 == Coordinate Ascent Variational Inference (CAVI)
-This motivates the CAVI algorithm. This is an iterative solution in which we first initialize all factors $q_(j)(z_(j))$ and then cycle through them, updating them conditional on the updates of the other.
+Using
+$
+  q_(j)^(ast)(z_(j)) prop exp (bb(E)_(q(bold(z)_(-j)))[log p(bold(z), bold(x))]),
+$
+first initialize all factors $q_(j)(z_(j))$ and then cycle through them, updating them conditional on the updates of the other.
 
 Note that
 $
-  p(z_(j)|bold(z)_(-j), bold(x)) = frac(p(z_j, bold(z)_(-j), bold(x)), p(bold(z)_(-j), bold(x))) prop p(z_j, bold(z)_(-j), bold(x)),
+  p(z_(j)|bold(z)_(-j), bold(x)) = frac(p(z_j, bold(z)_(-j), bold(x)), p(bold(z)_(-j), bold(x))) prop p(bold(z), bold(x)),
 $
-meaning we update in terms of the conditional posterior distribution of $z_(j)$ given all other factors $bold(z)_(-j)$.
-
 // =
 //
 // ==
@@ -332,7 +341,8 @@ meaning we update in terms of the conditional posterior distribution of $z_(j)$ 
 
 Assume the following model
 - Observations $y tilde.op cal(N)(beta x, sigma^(2))$
-- Latent variables $bold(z) = (beta, sigma^(2))$ with priors
+- Latent variables $bold(z) = (beta, sigma^(2))$.
+- Priors
   - $beta tilde.op cal(N)(0, tau^(2)sigma^(2))$ ("standardized" so $"Var"[beta \/ sigma] = tau$)
   - $sigma^(2) prop sigma^(-2)$ (improper Jeffreys prior)
 // To use CAVI, we must compute variational densities $q^(ast)(beta)$ and $q^(ast)(sigma^(2))$.
@@ -390,7 +400,7 @@ Assume the following model
 == Computing the expectations
 From $q^(ast)(sigma^(2))$ we needed
 $
-  nu = bb(E)_(q(beta))[A]
+  2nu = bb(E)_(q(beta))[A]
   &= bb(E)_(q(beta))[sum_(i=1)^(n) (y_(i) - beta x_(i))^(2) + frac(beta^(2), tau^(2))] \
   &= sum_(i=1)^(n) y_(i)^(2) - 2 sum_(i=1)^(n) y_(i) x_(i) bb(E)_(q(beta))[beta] + sum_(i=1)^(n) x_i^(2) bb(E)_(q(beta))[beta^(2)] + frac(1, tau^(2)) bb(E)_(q(beta))[beta^(2)]
 $
@@ -419,15 +429,15 @@ $
 $
 OK, we skip the details, but this in computable and we can use it to check for convergence.
 
+
 = Implementation and experimentation
 
-= Conclusion
+== Conditional conjugacy and stochastic variational inference @hoffman_stochastic_2013
 
-== Open problems
-- Other distance measures that KL
-- Alternatives to mean-field
-  - Add dependencies between latent variables (_structured VI_)
-- Statistical properties of VI
+- Nice and useful article.
+- Approach for computing (approximating) the gradient $nabla"ELBO"$
+  - Makes some assumptions about the model family...
+- This is the way to scale the VI to super large datasets!
 
 == Automatic differentiation VI @kucukelbir_automatic_2016
 - The goal is to work for any model, and only requires that the user specifies $log p (bold(x), bold(z))$.
@@ -435,11 +445,19 @@ OK, we skip the details, but this in computable and we can use it to check for c
 - Implemented in Stan @standev2018rstan!
 - Some tests I did with the multivariate regression model
   - Relatively good approximation, but not perfect.
-  - Faster than MCMC, but much slower than CAVI.
+  - Faster than MCMC, but much slower than CAVI (my implementation was NOT super great...)
   - Much easier to implement!
 
 
+= Conclusion
 
+== Open problems and discussion
+- Other distance measures that KL
+- Alternatives to mean-field
+  - Add dependencies between latent variables
+- Statistical properties of VI
+- "Interface between variational inference and MCMC" @blei_variational_2017
+- Relation to Variational Autoencoders  @kingma_auto-encoding_2022
 
 
 ==
