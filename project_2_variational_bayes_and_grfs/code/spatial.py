@@ -122,7 +122,10 @@ def kriging(
     # + obs_noise_param**2 * jnp.eye(n_pred)
 
     mean_pred = X_pred * mean_param + C_pred @ Cinv @ (y_obs - X_obs * mean_param)
-    cov_pred = obs_noise_param**2 * jnp.eye(n_pred) + C_pred @ Cinv @ C_pred.T
+
+    H_pred_pred = cdist(s_pred, s_pred)
+    C_prior = cov_function(H_pred_pred, cov_params)
+    cov_pred = C_prior - C_pred @ Cinv @ C_pred.T
     var_pred = jnp.diag(cov_pred)
 
     return mean_pred, var_pred
