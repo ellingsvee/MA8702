@@ -40,7 +40,7 @@ pub fn run() {
         DROPOUT,
         &mut rng,
     );
-    let (start_x, start_y) = maze.cell_center(0, 0);
+    let (start_x, start_y) = maze.random_cell_center(&mut rng);
 
     let mut robot = vec![Robot::new(start_x, start_y)];
 
@@ -54,6 +54,13 @@ pub fn run() {
     let mut frame = Frame::new(WIDTH, HEIGHT);
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
+        // Reset
+        if window.is_key_down(Key::R) {
+            let (start_x, start_y) = maze.random_cell_center(&mut rng);
+            robot[0] = Robot::new(start_x, start_y);
+            particles = spawn_particles(N_PARTICLES, WIDTH, HEIGHT, &mut rng);
+        }
+
         let (dx, dy) = update_robot(&window, &mut robot, &maze);
         update_particles(
             &mut particles,
