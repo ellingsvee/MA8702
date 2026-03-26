@@ -112,7 +112,52 @@ $
 $
 
 == Sequential importance sampling
+Assume we now have a sequence of posterior distributions $p(theta|y_1)$, $p(theta|y_(1:2))$, ..., $p(theta|y_(1:t))$ where $y_(1:t) = (y_1, dots, y_t)$.
 
+To use importance sampling, we need to sample from a proposal distribution $q_t (theta)$  and compute weights
+$
+  w_t^((i)) = p(theta^((i))|y_(1:t)) / (q_t (theta^((i)))).
+$
+This becomes computationally expensive as $t$ increases. We need an algorithm with an approximately fixed computational cost at each time point!
+
+
+== Sequential importance sampling
+We can write the weights as
+$
+  w_t^((i)) = underbrace(frac(p(theta^((i))|y_(1:t)), p(theta^((i))|y_(1:t-1))) dot frac(q_(t-1)(theta^((i))), q_t (theta^((i)))), a_t^((i))) dot underbrace(frac(p(theta^((i))|y_(1:t-1)), q_(t-1)(theta^((i)))), w_(t-1)^((i)))
+$
+
+Computing $a_t^((i))$ still requires the $p(theta^((i))|y_(1:t))$ and $q_t (theta^((i)))$. However, there are some cases where we can simplify the computation of this incremental weight.
+
+
+== Sequential importance sampling
+
++ The observations are conditionally independent given the parameters
+  $
+    frac(p(theta^((i))|y_(1:t)), p(theta^((i))|y_(1:t-1))) = p(y_t|theta^((i))) p(y_t|y_(1:t-1))
+  $
++ The proposal distribution is the same at each time point
+  $q_(t-1)(theta^((i))) \/ q_t (theta^((i))) = 1$
+
+Then the incremental weight is
+$
+  a_t^((i)) = p(y_t|theta^((i))) p(y_t|y_(1:t-1))
+$
+Using self-normalized importance sampling, we ignore the $p(y_t|y_(1:t-1))$ term.
+
+
+== Sequential importance sampling
+Algorithm
++ *Initialize:* For $1, dots, N$ draw $theta^((i)) tilde.op q_0(theta)$ and compute normalized weights $W_0^((i)) prop p(theta) \/ q(theta)$ with $sum_(j=1)^(N) W_0^((i)) = 1$.
++ For $t = 1, dots, T$:
+  - *Reweigh:* For $1, dots, N$ compute $W_t^((i)) prop p(y_t|theta^((i)))W_(t-1)^((i))$ with $sum_(j=1)^(N) W_t^((i)) = 1$.
+  - *Estimate:* Compute the SIS estimate
+    $
+      EE_t^("SIS-N") = sum_(i=1)^N W_t^((i)) f(theta^((i)))
+    $
+
+== Sequential importance sampling
+Issue with weight degeneracy: After running an SIS algorithm for a large number of iterations (time points), all but one particle will have negligible weight.
 
 
 == Just for some sources
