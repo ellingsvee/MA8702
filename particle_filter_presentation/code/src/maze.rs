@@ -149,6 +149,20 @@ impl Maze {
         }
     }
 
+    /// Get a random cell center coordinate for spawning.
+    pub fn random_cell_center(&self, rng: &mut impl Rng) -> (f64, f64) {
+        let cols = (self.width / self.cell_w) as usize;
+        let rows = (self.height / self.cell_h) as usize;
+
+        let col_dist = Uniform::new(0, cols).unwrap();
+        let row_dist = Uniform::new(0, rows).unwrap();
+
+        let col = col_dist.sample(rng);
+        let row = row_dist.sample(rng);
+
+        self.cell_center(col, row)
+    }
+
     /// Returns the center of a given cell — useful for spawning.
     pub fn cell_center(&self, col: usize, row: usize) -> (f64, f64) {
         (
