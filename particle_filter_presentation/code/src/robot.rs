@@ -98,11 +98,17 @@ pub fn update_robot(window: &Window, robot: &mut [Robot], maze: &Maze) -> (f64, 
     let all_sensors = maze.sense(new_x, new_y);
 
     // Only activate sensors in the direction(s) of movement.
-    let sensors = Sensors {
-        left: if dx < 0.0 { all_sensors.left } else { None },
-        right: if dx > 0.0 { all_sensors.right } else { None },
-        up: if dy < 0.0 { all_sensors.up } else { None },
-        down: if dy > 0.0 { all_sensors.down } else { None },
+    // When stationary, all sensors are active.
+    let moving = dx != 0.0 || dy != 0.0;
+    let sensors = if moving {
+        Sensors {
+            left: if dx < 0.0 { all_sensors.left } else { None },
+            right: if dx > 0.0 { all_sensors.right } else { None },
+            up: if dy < 0.0 { all_sensors.up } else { None },
+            down: if dy > 0.0 { all_sensors.down } else { None },
+        }
+    } else {
+        all_sensors
     };
 
     for r in robot {

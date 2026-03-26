@@ -64,9 +64,6 @@ impl Frame {
             let x1 = ((shape.cx + h).ceil() as usize + 1).min(self.width);
             let y1 = ((shape.cy + h).ceil() as usize + 1).min(self.height);
 
-            if x0 >= x1 || y0 >= y1 {
-                continue;
-            }
             for y in y0..y1 {
                 let row_start = y * w + x0;
                 let row_end = y * w + x1;
