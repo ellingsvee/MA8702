@@ -34,7 +34,7 @@ $
   p(bold(x), mu, gamma) & = p(bold(x)|mu, gamma) p(mu|tau) p(gamma|alpha, beta) \
                         & = ( product_(i=1)^N p(x_i|mu, gamma) ) p(mu|tau) p(gamma|alpha, beta).
 $
-We can insert the PDFs for the three distributions, which gives
+We can then insert the PDFs for the three distributions, which gives
 $
   p(bold(x), mu, gamma)
   &= ( product_(i=1)^N (gamma / (2 pi))^(1/2) exp{-gamma / 2 (x_i - mu)^2} ) (tau / (2 pi))^(1/2) exp{-tau / 2 mu^2} gamma^(alpha - 1) exp{-beta gamma} \
@@ -55,9 +55,9 @@ where $overline(bold(x)) = 1/N sum_(i=1)^(N)x_i$. Inserting this into the expres
 $
   p(mu, gamma|bold(x)) &prop gamma^(alpha + N/2 - 1) exp{-beta gamma} exp{-gamma/2 sum_(i = 1)^(N)x_i^(2)} exp{- 1/2 (gamma N + tau)mu^(2) + gamma N overline(bold(x)) mu}.
 $<posterior-expansion>
-Now, do derive expressions for the posterior parameters, we can collect the terms that depend on $mu$ and $gamma$ respectively.
+Now, to derive expressions for the posterior parameters, we can collect the terms that depend on $mu$ and $gamma$, respectively.
 
-Completing the square in $mu$, we can write the last exponential factor in @posterior-expansion as
+Completing the square for $mu$, the last exponential factor in @posterior-expansion is
 $
   exp{- 1/2 (gamma N + tau)(mu - (gamma N overline(bold(x))) / (gamma N + tau))^(2) + (gamma N overline(bold(x)))^2 / (2(gamma N + tau))}.
 $
@@ -65,7 +65,7 @@ For the conditional distribution of $mu|gamma, bold(x)$, the second term in the 
 $
   mu|gamma, bold(x) & tilde.op cal(N)((gamma N overline(bold(x))) / (gamma N + tau), 1 / (gamma N + tau)).
 $
-Similarly, collecting the terms that depend on $gamma$, we from @joint-distribution find the posterior
+Similarly, collecting the terms in @joint-distribution that depend on $gamma$
 $
   p(gamma|mu, bold(x)) prop gamma^(alpha + N/2 - 1) exp{-(beta + 1/2 sum_(i=1)^N (x_i - mu)^2) gamma},
 $
@@ -88,7 +88,7 @@ $
 $
 We derive $q(mu)$ and $q(gamma)$ using the variational Bayes update rules
 $
-  log q (mu) prop EE_(gamma) [log p(bold(x), mu, gamma)],
+  log q (mu) prop EE_(gamma) [log p(bold(x), mu, gamma)]
 $<VB-update-mu>
 and
 $
@@ -100,7 +100,7 @@ $
   log p(bold(x), mu, gamma) prop -gamma/2 sum_(i=1)^N (x_i - mu)^2 - tau/2 mu^2 + (alpha + N/2 - 1) log gamma - beta gamma.
 $<log-joint>
 
-From @VB-update-mu, we take the expectation over $gamma$ of @log-joint, keeping only terms that depend on $mu$
+From @VB-update-mu, we for @log-joint take the expectation over $gamma$, keeping only terms that depend on $mu$
 $
   log q (mu) & prop -EE[gamma]/2 sum_(i=1)^N (x_i - mu)^2 - tau/2 mu^2 \
              & = -EE[gamma]/2 (sum_(i=1)^N x_i^2 - 2 N overline(bold(x)) mu + N mu^2) - tau/2 mu^2 \
@@ -115,11 +115,11 @@ $
   tau_q = EE[gamma] N + tau, quad nu_q = (EE[gamma] N overline(bold(x))) / tau_q.
 $
 
-For $q(gamma)$ the update rule from @VB-update-gamma. Taking the expectation over $mu$ of @log-joint and keeping only terms that depend on $gamma$ gives
+For $q(gamma)$ we use the update rule from @VB-update-gamma. Taking the expectation over $mu$ of @log-joint and keeping only terms that depend on $gamma$ gives
 $
   log q (gamma) prop (alpha + N/2 - 1) log gamma - gamma (beta + 1/2 EE_(mu) [sum_(i=1)^N (x_i - mu)^2]).
 $
-Now, the expected sum of squares is
+The expected sum of squares is
 $
   EE_(mu) [sum_(i=1)^N (x_i - mu)^2] = sum_(i=1)^N ((x_i - nu_q)^2 + 1/tau_q) = sum_(i=1)^N (x_i - nu_q)^2 + N / tau_q,
 $
@@ -137,11 +137,11 @@ Beginning with $(2)$, we use the mean-field assumption $q(mu, gamma) = q (mu) q 
 $
   EE_q [log q(mu, gamma)] = EE_(q) [log q (mu)] + EE_(q) [log q (gamma)].
 $
-As $q(mu) = cal(N)(nu_q, 1\/tau_q)$ we have
+As $q(mu)$ is Gaussian we have
 $
   EE_(q) [log q (mu)] = -1/2 (1 + log(2 pi) - log tau_q),
 $
-and $q(gamma) = cal(Gamma)(alpha_q, beta_q)$ gives
+and $q(gamma)$ having a Gamma distribution gives
 $
   EE_(q) [log q (gamma)] = alpha_q - log beta_q + log Gamma(alpha_q) + (1 - alpha_q) psi(alpha_q)
 $
@@ -163,9 +163,9 @@ $
 $
 we evaluate
 $
-  EE_q [log p(bold(x)|mu, gamma)] = N/2 (psi(alpha_q) - log beta_q - log(2 pi)) - alpha_q / (2 beta_q) (sum_(i=1)^N (x_i - nu_q)^2 + N / tau_q), \
-  EE_q [log p(mu|tau)] = 1/2 (log(tau / (2 pi)) - tau (nu_q^2 + 1 / tau_q)), \
-  EE_q [log p(gamma|alpha, beta)] = alpha log beta - log Gamma(alpha) + (alpha - 1)(psi(alpha_q) - log beta_q) - beta alpha_q / beta_q.
+  EE_q [log p(bold(x)|mu, gamma)] &= N/2 (psi(alpha_q) - log beta_q - log(2 pi)) - alpha_q / (2 beta_q) (sum_(i=1)^N (x_i - nu_q)^2 + N / tau_q), \
+  EE_q [log p(mu|tau)] &= 1/2 (log(tau / (2 pi)) - tau (nu_q^2 + 1 / tau_q)), \
+  EE_q [log p(gamma|alpha, beta)] &= alpha log beta - log Gamma(alpha) + (alpha - 1)(psi(alpha_q) - log beta_q) - beta alpha_q / beta_q.
 $
 
 
@@ -175,7 +175,7 @@ Combining all terms, we obtain a closed-form expression for the ELBO as a functi
 
 To assess the quality of the variational approximation, we simulate $N = 100$ observations from a Gaussian distribution with mean $5$ and precision $1$. We choose prior parameters $alpha = 0.01$, $beta = 0.01$ and $tau = 10^(-6)$.
 
-@joint-posterior plots the approximate posterior $q(mu, gamma)$ and the true posterior from @exact-posterior. Observe clear similarities between the two, although they do not match perfectly. It appears like the variational approximation is slightly more concentrated around the mean than the exact posterior, which is a common feature of mean-field variational approximations.
+@joint-posterior plots the approximate posterior $q(mu, gamma)$ and the true posterior derived in @exact-posterior. Observe clear similarities between the two, although they do not match perfectly. It appears like the variational approximation is slightly more concentrated around the mean than the exact posterior, which is a common feature of mean-field variational approximations.
 
 
 #figure(
@@ -212,7 +212,7 @@ The full implementation for this task is found in #cmd("code/run_vi.py"),
 
 
 == Setup
-For this part of the project, we explore parameter estimation and Kriging for _Gaussian random fields_ (GRFs). Assume a domain $cal(D) = [0, 1]^(2)$. Let $x(dot)$ denote a GRF defined on $cal(D)$, and assume it has the Matérn covariance function
+For this part of the project, we explore parameter estimation and Kriging for Gaussian random fields (GRFs). Assume a domain $cal(D) = [0, 1]^(2)$. Let $x(dot)$ denote a GRF defined on $cal(D)$, and assume it has the covariance function
 $
   "Cov"(x(bold(s)_i), x(bold(s)_j)) = sigma^(2) (1 - phi h) exp{-phi h}, quad bold(s)_i, bold(s)_j in cal(D),
 $<covariance-function>
@@ -228,7 +228,7 @@ where $epsilon_i tilde.op cal(N)(0, tau^(2))$ are independent measurement errors
 
 == Simulation
 
-For the covariance function we select parameters $sigma^2 = 1$, $phi = 10$ and $tau^2 = 0.05^2$, while we let $alpha = 1$ in the mean function. @grf-simulated-data shows a dataset of a simulated GRF on a $100 times 100$ grid, and a corresponding set of observations taken at $N = 200$ random cells in the grid. Note that this is slightly different from the setup described in the project, as we could also have simulated the GRF directly at the random locations without needing a grid. However, the grid allows us to visualize the full spatial field, which is useful when we later in @Kriging want to compare the true spatial field with the Kriging predictions.
+For the covariance function we select parameters $sigma^2 = 1$, $phi = 10$ and $tau^2 = 0.05^2$, and let $alpha = 1$ in the mean function. @grf-simulated-data shows a dataset of a simulated GRF on a $100 times 100$ grid, and a corresponding set of observations taken at $N = 200$ random cells in the grid. Note that this is slightly different from the setup in the project description, as this described simulating the GRF directly at random locations without needing a grid. However, the grid allows us to visualize the full spatial field, which is useful when we later in @Kriging want to compare the true spatial field with the Kriging predictions.
 
 #subpar.grid(
   figure(image("code/figures/grfs/grf_full_field.svg"), caption: [
@@ -240,16 +240,16 @@ For the covariance function we select parameters $sigma^2 = 1$, $phi = 10$ and $
 
   <grf-simulated-observations>,
   columns: (auto, auto),
-  caption: [Simulated GRF data on a $100 times 100$ grid, and $200$ observations taken at random locations in the grid.],
+  caption: [Simulated GRF data on a $100 times 100$ grid, and $200$ observations taken at random cells in the grid.],
   label: <grf-simulated-data>,
 )
 
 == Parameter estimation
 
-Using the simulated data from @grf-simulated-observations, we estimate the parameters of the GRF model using maximum likelihood estimation (MLE). In the #link("https://www.math.ntnu.no/emner/MA8702/2026v/gaussianProcesses.pdf", "course material"), there are derived formulas for how to compute the value and gradient of the log-likelihood analytically. We will therefore not repeat this derivation here. Other than differentiating the mean- and covariance functions from @mean-function and @covariance-function with respect to our parameters, the only thing we need to do is to implement the update rules.
+Using the simulated data from @grf-simulated-observations, we estimate the parameters of the GRF model using maximum likelihood estimation (MLE). In the #link("https://www.math.ntnu.no/emner/MA8702/2026v/gaussianProcesses.pdf", "course material"), there has already been derived formulas for how to analytically compute the value and gradient of the log-likelihood. We will therefore not repeat this derivation here. Other than differentiating the mean- and covariance functions from @mean-function and @covariance-function with respect to our parameters, the only thing we need to do is to implement the update rules.
 
 
-As an alternative to the analytical approach, I instead attempt to optimize the parameters jointly using gradient-based optimization. I am aware that this is not the approach described in the project, but hopefully it is still acceptable as it is a valid approach to parameter estimation. Implementing the joint optimization is straightforward using automatic differentiation. We can write a function that computes the log-likelihood of the observed data given the parameters, and then use an optimizer such as Adam to optimize the parameters.
+As an alternative to the analytical approach, I instead attempt to optimize the parameters jointly using gradient-based optimization. This is mostly for my own learning, as the analytical approach has already been covered in #link("https://www.ntnu.no/studier/emner/TMA4250#tab=omEmnet", "TMA4250"). I am aware that this is not the approach described in the project, but hopefully it is still acceptable. A benefit of the joint optimization approach is that implementing it only requires us to write a function that computes the log-likelihood given the current parameters, and then we can rely on automatic differentiation to obtain gradients. I then use the Adam optimizer the parameters for taking minimizing the negative log-likelihood.
 
 @grf-loglikelihood-history illustrated the convergence of the log-likelihood during optimization. Observe a very rapid convergence, where the optimization stabilizes after approximately $50$ iterations. The optimized parameters after $200$ iterations were $hat(alpha) = 1.1$, $hat(sigma)^2 = 1.15$, $hat(phi) = 9.5$ and $hat(tau) = 0.06$, which correspond fairly well to the truth.
 
@@ -263,7 +263,8 @@ As an alternative to the analytical approach, I instead attempt to optimize the 
 
 Based on the estimated parameters, we perform Kriging to predict the spatial field at a $25 times 25$ grid covering the domain. Again, we rely on the formulas from the course material to compute the predicted mean and variance at each location in the grid.
 
-@kriging-predictions shows the predicted mean and variance. Comparing to the true spatial field in @grf-simulated-data, we see that the mean predictions capture the general structure of the spatial field. The predicted variance is higher in areas with fewer observations, and close to 0 near observed locations. Note that as we have a relatively dense set of observations, the predicted variance is generally quite low.
+@kriging-predictions shows the predicted mean and variance. Comparing to the true spatial field in @grf-simulated-data, we see that the mean predictions capture the general structure of the spatial field. The predicted variance is $hat(tau)^(2)$ at observed locations, and increases when moving away from observed areas.
+
 
 
 #subpar.grid(
@@ -283,7 +284,7 @@ Based on the estimated parameters, we perform Kriging to predict the spatial fie
 
 We can also attempt to repeat the parameter estimation and kriging predictions on a dataset with a more exotic observation structure. @exotic-observation-structure shows the full spatial field and the observations for a dataset where $200$ observations are taken in a cross-shaped pattern in the middle of the domain.
 
-Estimating the parameters, we obtain $hat(alpha) = 1.35$, $hat(sigma)^2 = 0.82$, $hat(phi) = 11.28$ and $hat(tau) = 0.047$. Interestingly, we see that although we have the same number of observations as in the previous dataset, the parameter estimates are worse. This is likely because the observations are more clustered together, which makes it more difficult to capture the spatial structure of the field. However, the estimates are still reasonably close to the truth, meaning that the optimization was able to find a good solution despite the more challenging observation structure.
+Estimating the parameters, we obtain $hat(alpha) = 1.35$, $hat(sigma)^2 = 0.82$, $hat(phi) = 11.28$ and $hat(tau) = 0.047$. See that although we have the same number of observations as in the previous dataset, the parameter estimates are worse. This is likely because the observations are less spread out across the domain, which means that we have less information about the spatial structure of the field. Yet, the estimates are still reasonably close to the truth.
 
 #subpar.grid(
   figure(image("code/figures/exotic/grf_full_field.svg"), caption: [
@@ -299,7 +300,7 @@ Estimating the parameters, we obtain $hat(alpha) = 1.35$, $hat(sigma)^2 = 0.82$,
 )
 
 
-@exotic-kriging-predictions shows the predictions for the full spatial field based on the cross-shaped observation pattern. For the predicted mean, we from @exotic-kriging-mean see that the predictions are quite accurate in the observed parts of the domain, but become increasingly inaccurate as we move towards the corners. Notably, the predicted mean approaches the estimated mean in the corners, resulting a in much "smoother" prediction compared to the true spatial field. As from the previous example, we for the predicted variance see from @exotic-kriging-var that the predicted variance is close to 0 in the observed areas, but increases as we move towards the corners. However, the predicted variance is generally higher than previously, which aligns with the intuition that we are more uncertain in regions far from any observations.
+@exotic-kriging-predictions shows the predictions for the full spatial field based on the cross-shaped observation pattern. For the predicted mean, we from @exotic-kriging-mean see that the predictions are quite accurate in the observed parts of the domain, but become increasingly inaccurate as we move towards the corners. Notably, the predicted mean approaches the estimated mean $hat(mu)(dot)$ in the corners, resulting a in much "smoother" prediction compared to the true spatial field. As from the previous example, we for the predicted variance see from @exotic-kriging-var that the predicted variance is close to $hat(tau)^(2)$ in the observed areas, but increases as we move towards the corners. The predicted variance is also overall higher than in @kriging-predictions, which aligns with the intuition that we are more uncertain in regions far from any observations.
 
 #subpar.grid(
   figure(image("code/figures/exotic/grf_pred_mean.svg"), caption: [
