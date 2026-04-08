@@ -11,7 +11,7 @@
 
 #title-slide[
   = Particle Filters
-  Based on _A tutorial on particle filters_ @speekenbrink_tutorial_2016
+  // Based on _A tutorial on particle filters_ @speekenbrink_tutorial_2016
 ]
 
 
@@ -86,11 +86,11 @@ Up to time $t$:
 - Let $y_(0:t)$ be the observations (sensor measurements)
 For functions $f$ and $g$, we have
 $
-  phi_(t) = f(x_(t-1), u_t) + eta_t
+  phi_(t) = f(phi_(t-1), u_t) + eta_t
 $
 and
 $
-  y_t = g(x_t) + epsilon_t
+  y_t = g(phi_t) + epsilon_t
 $
 where $eta_t$ and $epsilon_t$ have some iid. and possibly non-Gaussian noise distribution.
 
@@ -111,8 +111,6 @@ where $eta_t$ and $epsilon_t$ have some iid. and possibly non-Gaussian noise dis
 = Theory
 
 Instead turn to the particle filter...for this we must start with importance sampling.
-
-
 
 == Monte Carlo integration
 
@@ -150,6 +148,15 @@ with normalized weights
 $
   W^((i)) = w^((i)) / (sum_(j=1)^N w^((j)))
 $
+
+
+== Why importance sampling?
+- We want to estimate the posterior $p(phi_(0:t)|y_(1:t))$, but we cannot sample from it directly.
+- Standard Monte Carlo requires samples from the target distribution. Not available here.
+#pause
+- Instead sample from a simpler proposal distribution $q$ and correct using importance weights.
+#pause
+*For our robot: we can easily simulate possible positions (propose), then use the sensor measurements to judge how likely each proposal is (reweigh).*
 
 == Sequential importance sampling
 Assume we now have a sequence of posterior distributions $p(theta|y_1)$, $p(theta|y_(1:2))$, ..., $p(theta|y_(1:t))$ where $y_(1:t) = (y_1, dots, y_t)$.
@@ -229,19 +236,43 @@ but the $p(y_t|y_(1:t-1))$ term is ignored when using normalized weights.
 
 
 == A generic particle filter algorithm
++ *Initialize:* For $i = 1, dots, N$, sample $phi_0^((i)) tilde.op q_0 (phi_0)$ and set $W_0^((i)) = 1\/N$.
++ For $t = 1, dots, T$:
+  + *Propagate:* Sample $phi_t^((i)) tilde.op q_t (phi_t|phi_(0:t-1)^((i)))$.
+  + *Reweigh:* Compute
+    $
+      W_t^((i)) prop frac(p(y_t|phi_t^((i))) p(phi_t^((i))|phi_(t-1)^((i))), q_t (phi_t^((i))|phi_(0:t-1)^((i)))) W_(t-1)^((i))
+    $
+  + *Resample:* If $N_"eff"$ is below a threshold, resample particles.
+  + *Estimate:* $EE_t = sum_(i=1)^N W_t^((i)) f(phi_t^((i)))$.
 
-
+== The bootstrap particle filter
+A common choice is to set the proposal equal to the state transition prior:
+$
+  q_t (phi_t|phi_(0:t-1)^((i))) = p(phi_t|phi_(t-1)^((i)))
+$
+Then the weights simplify to
+$
+  W_t^((i)) prop p(y_t|phi_t^((i))) W_(t-1)^((i)).
+$
+For our robot: propagate each particle according to the movement model, then reweigh by how well the sensor measurements match.
 
 == Further issues and extensions
+// - *Choice of proposal distribution:* The bootstrap filter can be inefficient when the likelihood is very peaked. Better proposals incorporate the current observation.
+// - *Particle impoverishment:* After resampling, many particles are duplicates. Regularization or MCMC moves can help.
+// - *Unknown parameters:* Can be handled by augmenting the state space, or using particle MCMC methods.
 
+- *Sample impoverishment and particle smoothing:* TODO
+- *Inferring time-invariant (static) parameters:* TODO
+- *Rao-Blackwellized particle filters:* TODO
 
+== Discussion
+- Which problems in your research could be handled using particle filters?
+- How does they relate to other methods you are familiar with, e.g. variational inference, MCMC?
+- ...
 
-== Just for some sources
-@dhayalkar_particle_2025
-
-
-==
-#text(size: 15pt)[
-  #bibliography("refs.bib", style: "elsevier-harvard")
-]
+// ==
+// #text(size: 15pt)[
+//   #bibliography("refs.bib", style: "elsevier-harvard")
+// ]
 
