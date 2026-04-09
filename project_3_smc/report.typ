@@ -17,6 +17,8 @@
   language: "en",
 )
 
+#set figure(gap: 0.1em)
+
 = Setup
 In this project we consider three different filtering approaches for tracking a ship on the surface using two bearings-only observations. There are two sensors measuring angles to a vessel. One sensor is located in east,north coordinate $(0, 0)$, the other at coordinate $(40, 40)$ in km units.
 
@@ -53,19 +55,70 @@ Here, the inverse tangent function is defined as indicated in Figure 1 from the 
 
 _Implement an extended Kalman filter algorithm. This means linearizing the measurement equation around the predicted state. Plot the filtering solution over time in a map view, along with uncertainty bounds. Also indicate the position of the sensors in the map. Plot the filter variances of the position coordinates over time. Show your derivation and discuss the results._
 
-We begin by implementing an extended Kalman filter algorithm. I follow the steps outlined in the #link("https://en.wikipedia.org/wiki/Extended_Kalman_filter", "Extended Kalman filter") Wikipedia article. Define
+We begin by implementing an extended Kalman filter algorithm. I follow the steps outlined in the #link("https://en.wikipedia.org/wiki/Extended_Kalman_filter", "Extended Kalman filter") Wikipedia article. The prediction steps are
++ Predicted state estimate: $hat(bold(x))_(t|t-1) = bold(upright(A)) hat(bold(x))_(t-1|t-1)$
++ Predicted covariance estimate: $bold(upright(P))_(t|t-1) = bold(upright(A)) bold(upright(P))_(t-1|t-1) bold(upright(A))^top + bold(upright(Q))$
+Define
 $
   bold(upright(H))_t = lr((partial h )/ (partial bold(x))|)_(hat(bold(x))_(t|t-1))
 $
-where $hat(x)_(k|k-1) = bold(upright(A)) hat(x)_(k-1)$ denotes the predicted state estimate. The prediction steps are
-+ Predicted state estimate: $hat(bold(x))_(t|t-1) = bold(upright(A)) hat(bold(x))_(t-1|t-1)$
-+ Predicted covariance estimate: $bold(upright(P))_(t|t-1) = bold(upright(A)) bold(upright(P))_(t-1|t-1) bold(upright(A))^top + bold(upright(Q))$
-The update steps are
+where $hat(x)_(k|k-1)$ denotes the predicted state estimate. For estimates $hat(E)_t$ and $hat(N)_t$ at some time $t$, we have the matrix
+$
+  bold(upright(H))_t = mat(
+    delim: "[",
+    hat(N)_t/(hat(E)_t^2 + hat(N)_t^2), - hat(E)_t/(hat(E)_t^2 + hat(N)_t^2), 0, 0;
+  )
+$
+
+
+
+The update steps are then
 + Measurement residual: $tilde(bold(z))_(t) = bold(y_t) - h(hat(x)_(k|k-1))$
 + Residual covariance: $bold(upright(S))_t = bold(upright(H))_t bold(upright(P))_(t|t-1) bold(upright(H))_t^top + bold(upright(R))$
 + Kalman gain: $bold(upright(P))_(t|t-1) bold(upright(H))_t^top bold(upright(S))_t^(-1)$
 + Updated state estimate: $hat(bold(x))_(t|t) = hat(bold(x))_(t|t-1) + bold(upright(K))_t tilde(bold(z))_t$
 + Updated covariance estimate: $bold(upright(P))_(t|t) = (bold(upright(I)) - bold(upright(K))_(t) bold(upright(H))_t) bold(upright(P))_(t|t-1)$
+
+
+The filtering algorithm is implemented in `extended_kalman.py`. See that I have used automatic differentiation to obtain the $bold(upright(H))_t$ matrix. Running the algorithm, we obtain the filtering solution and uncertainty bounds bounds in @extended_kalman_solution. We in @extended_kalman_variances plot the variances.
+
+// #figure(
+//   image(
+//     "code/figures/filter_map.svg",
+//     width: 100%
+//   ),
+//   caption: [
+//   Filtering solution for the extended Kalman filter
+// ]
+// )<extended_kalman_solution>
+//
+// #figure(
+//   image(
+//     "code/figures/filter_variances.svg",
+//     width: 100%
+//   ),
+//   caption: [
+//   Filtering variances for the extended Kalman filter
+// ]
+// )<extended_kalman_variances>
+
+#subpar.grid(
+  figure(image("code/figures/filter_map.svg"), caption: [
+    Filtering solution
+  ]),
+  <extended_kalman_solution>,
+  figure(image("code/figures/filter_variances.svg"), caption: [
+    Filtering variances
+  ]),
+  <extended_kalman_variances>,
+  columns: auto,
+  caption: [Extended Kalman filter],
+  gap: 1.5em,
+)
+
+
+
+
 
 = Particle Filter
 
