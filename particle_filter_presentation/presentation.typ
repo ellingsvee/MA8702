@@ -1,5 +1,8 @@
 #import "@local/presentation:1.0.0": *
 
+#import "@preview/fletcher:0.5.8" as fletcher: diagram, edge, node, shapes
+
+
 #show: presentation.with(
   primary: rgb("#00509e"),
   header-right: none,
@@ -15,38 +18,86 @@
 ]
 
 
-== What are particle filters?
-To understand this, we first need to define the state-space model.
+== State space models (SSMs)
 
-#figure(
-  image("figures/state_space_model.png", width: 70%),
+
+Observable time-series $z_(1:t)$ through a time-series of latent states $x_(0:t)$.
+
+#let nodes = ("A", "B", "C", "D", "E", "F", "G")
+#let edges = (
+  (3, 2),
+  (4, 1),
+  (1, 4),
+  (0, 4),
+  (3, 0),
+  (5, 6),
+  (6, 5),
 )
 
-== State space models
-Observable time-series $y_(1:t)$ through a time-series of latent or hidden states $phi_(1:t)$. Two core assumptions:
-+ Each observation $y_t$ depends only on the current state $phi_t$.
+#figure(
+  diagram(
+    // for (i, n) in nodes.enumerate() {
+    // 	let θ = 90deg - i*360deg/nodes.len()
+    // 	node((θ, 18mm), n, stroke: 0.5pt, name: str(i))
+    // }
+    // for (from, to) in edges {
+    // 	let bend = if (to, from) in edges { 10deg } else { 0deg }
+    // 	// refer to nodes by label, e.g., <1>
+    // 	edge(label(str(from)), label(str(to)), "-|>", bend: bend)
+    // }
+    // node-radius: 2em,
+    node((0, 0), [$x_0$], stroke: 1pt, radius: 1em),
+    edge("-|>"),
+    node((1, 0), [$x_1$], stroke: 1pt, radius: 1em, name: "x1"),
+    edge("-|>"),
+    node((2, 0), [$x_2$], stroke: 1pt, radius: 1em, name: "x2"),
+    edge("-|>"),
+    node((3, 0), [$dots$], stroke: 0pt, radius: 1em),
+    edge("-|>"),
+    node((4, 0), [$x_t$], stroke: 1pt, radius: 1em),
+    edge((4, 0), (5, 0), "-|>"),
+
+    // Observations
+    node((1, 1), [$z_1$], stroke: 1pt, radius: 1em),
+    edge((1, 0), (1, 1), "-|>"),
+    node((2, 1), [$z_2$], stroke: 1pt, radius: 1em),
+    edge((2, 0), (2, 1), "-|>"),
+    node((4, 1), [$z_t$], stroke: 1pt, radius: 1em),
+    edge((4, 0), (4, 1), "-|>"),
+  ),
+  // caption: [
+  //   State-space model
+  // ],
+  // gap: 1.5em,
+)
+
+Want to estimate $x_t$ given observations $z_(1:t)$.
+
+== State-space models (SSMs)
+
+Core assumptions:
++ Each observation $z_t$ depends only on the current state $x_t$.
   $
-    p(y_(1:T)|phi_(0:T)) = product_(t=1)^T p(y_t|phi_t).
+    p(z_(1:T)|x_(0:T)) = product_(t=1)^T p(z_t|x_t).
   $
-+ Hidden states change over time according to a first-order Markov process.
++ Latent states change over time according to a first-order Markov process.
 $
-  p(phi_(0:T)) = p(phi_0) product_(t=1)^T p(phi_t|phi_(t-1)).
+  p(x_(0:T)) = p(x_0) product_(t=1)^T p(x_t|x_(t-1)).
 $
 
-== Inference for state-space models
-We want to estimate the hidden states $phi_(0:t)$ given the observations $y_(1:t)$, i.e. we want to estimate the posterior distribution
+
+== Linear and Gaussian example
 $
-  p(phi_(0:t)|y_(1:t)) = frac(p(y_(1:t)|phi_(0:t)) p(phi_(0:t)), p(y_(1:t))).
+  bold(x)_t & = bold(upright(A)) bold(x)_(t-1) + bold(w)_t, quad & bold(w)_t & tilde.op cal(N)(bold(0), bold(upright(Q))) \
+  bold(z)_t & = bold(upright(H))bold(x)_t + bold(v)_t, quad      & bold(v)_t & tilde.op cal(N)(bold(0), bold(upright(R)))
 $
-See that as $t$ increases, the dimension of the parameter space increases, making inference more costly.
+In this case, the posterior $p(bold(x)_t|bold(z)_(1:t))$ is Gaussian and can be computed in closed form using the Kalman filter.
+
+*But...how to handle non-linear and/or non-Gaussian SSMs?*
 
 
-== Inference for state-space models
-- We need an algorithm with an approximately *fixed computational cost* at each time point!
-#pause
-- Particle filter, and more generally *sequential Monte Carlo (SMC)*, is a way to handle this issue.
-#pause
-- Essentially just *sequential importance sampling* for state-space models, with some resampling to avoid weight degeneracy.
+
+
 
 = Application: Robot localization problem
 For fun I have built a simple program to simulate a robot moving around in a 2D environment.
@@ -79,183 +130,52 @@ For fun I have built a simple program to simulate a robot moving around in a 2D 
   label: <full>,
 )
 
-== Let us formalize the problem
+== Let us formalize the
 Up to time $t$:
-- Let $phi_(0:t)$ be the states (position)
+- Let $x_(0:t)$ be the states (position)
 - Let $u_(0:t)$ be the control input (movement commands)
-- Let $y_(0:t)$ be the observations (sensor measurements)
+- Let $z_(1:t)$ be the observations (sensor measurements)
 For functions $f$ and $g$, we have
 $
-  phi_(t) = f(phi_(t-1), u_t) + eta_t
+  x_(t) = f(x_(t-1), u_t) + eta_t
 $
 and
 $
-  y_t = g(phi_t) + epsilon_t
+  z_t = g(x_t) + epsilon_t
 $
-where $eta_t$ and $epsilon_t$ have some iid. and possibly non-Gaussian noise distribution.
+where $eta_t$ and $epsilon_t$ has some non-Gaussian noise distribution.
 
-#focus-slide()[
-  Clearly this is a state-space model!
-
-  Need to estimate the posterior $p(phi_(0:t)|y_(1:t), u_(1:t))$.
-]
-
-== What about the Kalman filter?
-- A super popular approach to inference in state-space models !
-- Assumes that the state transition and observation models are linear, and that the noise is Gaussian.
-- We cannot make these assumptions for our problem :-(
-
-
+=== Approaches for solving the problem
+- Extended Kalman filter: Does not work well when the non-linearities are strong, and ssumes Gaussian noise.
+- Ensemble Kalman filter: Can handle non-linearities better, but still assumes Gaussian noise.
+- Particle filter: Can handle non-linearities and non-Gaussian noise, but can be computationally expensive.
 
 
 = Theory
 
-Instead turn to the particle filter...for this we must start with importance sampling.
+== From Gaussian distributions to a cloud of particles
+#subpar.grid(
+  figure(image("figures/multivariate.png", width: 110%)),
+  figure(image("figures/toy.jpg", width: 85%)),
+  figure(image("figures/particles_in_maze.png", width: 100%)),
 
-== Monte Carlo integration
+  columns: (auto, auto, auto),
+)
 
-Want to estimate expectation
-$
-  EE_p [f(Y)] = integral f(y) p(y) dif y
-$
 
-The Monte Carlo estimator is
-+ *Sample:* For $1, dots, N$ draw $y^((i)) tilde.op p(y)$
-+ *Estimate:*
-$
-  EE^("MC") = 1/N sum_(i=1)^N f(y^((i)))
-$
+==
 
-== Importance sampling
+$N$ particles, each with an associated weight
 $
-  EE_p [f(Y)] = integral p(y)/ q(y) q(y) f(y) dif y = EE_q [ w(Y) f(Y)]
+  {x_k^(i), w_k^(i)}_(i=1)^N, quad w_k^(i) >= 0, quad sum_(i=1)^N w_k^(i) = 1
 $
 
-Algorithm:
-+ *Sample:* For $1, dots, N$ draw $y^((i)) tilde.op q(y)$
-+ *Weights:* For $1, dots, N$ compute $w^((i)) = p(y^((i))) \/ q(y^((i)))$
-+ *Estimate:*
+Approximate the posterior as
 $
-  EE^("IS") = sum_(i=1)^N w^((i)) f(y^((i)))
-$
-
-== Self-normalized importance sampling
-The $EE^("IS")$ is unbiased, but can have high variance. Instead, we can use the self-normalized estimator
-$
-  EE^("IS-N") = sum_(i=1)^N W^((i)) f(y^((i)))
-$
-with normalized weights
-$
-  W^((i)) = w^((i)) / (sum_(j=1)^N w^((j)))
+  p(x_k|z_(1:k)) approx sum_(i=1)^N w_k^(i) delta(x_k - x_k^(i))
 $
 
 
-== Why importance sampling?
-- We want to estimate the posterior $p(phi_(0:t)|y_(1:t))$, but we cannot sample from it directly.
-- Standard Monte Carlo requires samples from the target distribution. Not available here.
-#pause
-- Instead sample from a simpler proposal distribution $q$ and correct using importance weights.
-#pause
-*For our robot: we can easily simulate possible positions (propose), then use the sensor measurements to judge how likely each proposal is (reweigh).*
-
-== Sequential importance sampling
-Assume we now have a sequence of posterior distributions $p(theta|y_1)$, $p(theta|y_(1:2))$, ..., $p(theta|y_(1:t))$ where $y_(1:t) = (y_1, dots, y_t)$.
-
-To use importance sampling, we need to sample from a proposal distribution $q_t (theta)$  and compute weights
-$
-  w_t^((i)) = p(theta^((i))|y_(1:t)) / (q_t (theta^((i)))).
-$
-This becomes computationally expensive as $t$ increases. We need an algorithm with an approximately fixed computational cost at each time point!
-
-
-== Sequential importance sampling
-We can write the weights as
-$
-  w_t^((i)) = underbrace(frac(p(theta^((i))|y_(1:t)), p(theta^((i))|y_(1:t-1))) dot frac(q_(t-1)(theta^((i))), q_t (theta^((i)))), a_t^((i))) dot underbrace(frac(p(theta^((i))|y_(1:t-1)), q_(t-1)(theta^((i)))), w_(t-1)^((i)))
-$
-
-Computing $a_t^((i))$ still requires the $p(theta^((i))|y_(1:t))$ and $q_t (theta^((i)))$. However, there are some cases where we can simplify the computation of this incremental weight.
-
-
-== Sequential importance sampling
-
-+ The observations are conditionally independent given the parameters
-  $
-    frac(p(theta^((i))|y_(1:t)), p(theta^((i))|y_(1:t-1))) = p(y_t|theta^((i))) p(y_t|y_(1:t-1))
-  $
-+ The proposal distribution is the same at each time point
-  $q_(t-1)(theta^((i))) \/ q_t (theta^((i))) = 1$
-
-Then the incremental weight is
-$
-  a_t^((i)) = p(y_t|theta^((i))) p(y_t|y_(1:t-1))
-$
-Using self-normalized importance sampling, we ignore the $p(y_t|y_(1:t-1))$ term.
-
-
-== Sequential importance sampling
-Algorithm
-+ *Initialize:* For $1, dots, N$ draw $theta^((i)) tilde.op q_0(theta)$ and compute normalized weights $W_0^((i)) prop p(theta) \/ q(theta)$ with $sum_(j=1)^(N) W_0^((i)) = 1$.
-+ For $t = 1, dots, T$:
-  - *Reweigh:* For $1, dots, N$ compute $W_t^((i)) prop p(y_t|theta^((i)))W_(t-1)^((i))$ with $sum_(j=1)^(N) W_t^((i)) = 1$.
-  - *Estimate:* Compute the SIS estimate
-    $
-      EE_t^("SIS-N") = sum_(i=1)^N W_t^((i)) f(theta^((i)))
-    $
-
-== Sequential importance sampling
-Issue with weight degeneracy: After running an SIS algorithm for a large number of iterations (time points), all but one particle will have negligible weight.
-
-Often measure using the effective sample size
-$
-  N_"eff" = frac(1, sum_(i=1)^N (W_t^((i)))^2).
-$
-$N_"eff" = 1$ means all weight is on one particle, while $N_"eff" = N$ means all particles have equal weight.
-
-
-== Solving the weight degeneracy using resampling
-
-Particles are sampled with replacement from the set of all particles, with a probability that depends on the importance weights.
-
-== Systematic resampling
-The most common resampling algorithm is _systematic resampling_. Let ${theta_t, W_t^((i))}$ represent set of particles before resampling, and ${tilde(theta)_t, tilde(W)_t^((i))}$ the set after, we do
-+ Draw $u tilde.op "Unif"(0, 1 \/ N)$.
-+ Define $U^(i) = (i-1) \/ N + u$ for $i = 1, dots, N$.
-+ For $i = 1, dots, N$, find $r$ such that $sum_(k=1)^(r-1) W_t^((k)) <= U^(i) < sum_(k=1)^r W_t^((k))$ and set $j(i) = r$.
-+ For $i = 1, dots, N$, set $tilde(theta)_t^((i)) = theta_t^((j(i)))$ and $tilde(W)_t^((i)) = 1 \/ N$.
-
-== Finally...particle filters
-
-We can view the problem of estimating the hidden states $phi_(0:t)$ as estimating a vector of parameters $theta$ which increases in dimension at each time point $t$
-
-By SIS we use proposal distribution $q_t (phi_(0:t)) = q_t (phi_t|phi_(0:t-1)) q_(t-1) (phi_(0:t-1))$. We find the weights
-$
-  a_t^((i)) = (p(y_t|phi_t^((i))) p(phi_t^((i))|phi_(t-1)^((i)))) / (p(y_t|y_(1:t-1)) q_t (phi_t^((i))|phi_(0:t-1)^((i)))),
-$
-but the $p(y_t|y_(1:t-1))$ term is ignored when using normalized weights.
-
-
-== A generic particle filter algorithm
-+ *Initialize:* For $i = 1, dots, N$, sample $phi_0^((i)) tilde.op q_0 (phi_0)$ and set $W_0^((i)) = 1\/N$.
-+ For $t = 1, dots, T$:
-  + *Propagate:* Sample $phi_t^((i)) tilde.op q_t (phi_t|phi_(0:t-1)^((i)))$.
-  + *Reweigh:* Compute
-    $
-      W_t^((i)) prop frac(p(y_t|phi_t^((i))) p(phi_t^((i))|phi_(t-1)^((i))), q_t (phi_t^((i))|phi_(0:t-1)^((i)))) W_(t-1)^((i))
-    $
-  + *Resample:* If $N_"eff"$ is below a threshold, resample particles.
-  + *Estimate:* $EE_t = sum_(i=1)^N W_t^((i)) f(phi_t^((i)))$.
-
-== The bootstrap particle filter
-A common choice is to set the proposal equal to the state transition prior:
-$
-  q_t (phi_t|phi_(0:t-1)^((i))) = p(phi_t|phi_(t-1)^((i)))
-$
-Then the weights simplify to
-$
-  W_t^((i)) prop p(y_t|phi_t^((i))) W_(t-1)^((i)).
-$
-For our robot: propagate each particle according to the movement model, then reweigh by how well the sensor measurements match.
 
 == Further issues and extensions
 // - *Choice of proposal distribution:* The bootstrap filter can be inefficient when the likelihood is very peaked. Better proposals incorporate the current observation.
