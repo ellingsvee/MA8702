@@ -1,8 +1,8 @@
 use crate::maze::{Maze, Sensors};
-use crate::window::Item;
-use minifb::{Key, Window};
 use rand::Rng;
-use rand_distr::{Distribution, Normal, Uniform};
+use rand_distr::{Distribution, Normal};
+use raylib::consts::KeyboardKey::*;
+use raylib::prelude::*;
 
 pub struct Robot {
     pub x: f64,
@@ -11,20 +11,6 @@ pub struct Robot {
     pub size: f64,
     pub color: u32,
     pub sensors: Sensors,
-}
-
-impl Item for Robot {
-    fn position(&self) -> (f64, f64) {
-        (self.x, self.y)
-    }
-
-    fn color(&self) -> u32 {
-        self.color
-    }
-
-    fn size(&self) -> f64 {
-        self.size
-    }
 }
 
 impl Robot {
@@ -56,20 +42,20 @@ impl Robot {
 }
 
 /// Returns (dx, dy) — the actual displacement applied to the robot.
-pub fn update_robot(window: &Window, robot: &mut [Robot], maze: &Maze) -> (f64, f64) {
+pub fn update_robot(rl: &RaylibHandle, robot: &mut [Robot], maze: &Maze) -> (f64, f64) {
     let mut x_move = 0.0;
     let mut y_move = 0.0;
 
-    if window.is_key_down(Key::Left) {
+    if rl.is_key_down(KEY_LEFT) {
         x_move -= 1.0;
     }
-    if window.is_key_down(Key::Right) {
+    if rl.is_key_down(KEY_RIGHT) {
         x_move += 1.0;
     }
-    if window.is_key_down(Key::Up) {
+    if rl.is_key_down(KEY_UP) {
         y_move -= 1.0;
     }
-    if window.is_key_down(Key::Down) {
+    if rl.is_key_down(KEY_DOWN) {
         y_move += 1.0;
     }
 
@@ -97,24 +83,10 @@ pub fn update_robot(window: &Window, robot: &mut [Robot], maze: &Maze) -> (f64, 
 
     let all_sensors = maze.sense(new_x, new_y);
 
-    // Only activate sensors in the direction(s) of movement.
-    // When stationary, all sensors are active.
-    let moving = dx != 0.0 || dy != 0.0;
-    let sensors = if moving {
-        Sensors {
-            left: if dx < 0.0 { all_sensors.left } else { None },
-            right: if dx > 0.0 { all_sensors.right } else { None },
-            up: if dy < 0.0 { all_sensors.up } else { None },
-            down: if dy > 0.0 { all_sensors.down } else { None },
-        }
-    } else {
-        all_sensors
-    };
-
     for r in robot {
         r.x = new_x;
         r.y = new_y;
-        r.sensors = sensors.clone();
+        r.sensors = all_sensors.clone();
     }
 
     (dx, dy)

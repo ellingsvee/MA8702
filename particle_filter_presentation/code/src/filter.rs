@@ -132,6 +132,9 @@ pub fn update_particles(
     robot_dy: f64,
     rng: &mut impl Rng,
 ) {
+    if particles.is_empty() {
+        return;
+    }
     let n_f = particles.len() as f64;
 
     let sigma_xi = params.sigma_xi;
@@ -149,8 +152,8 @@ pub fn update_particles(
         particle.state.x += robot_dx + xi_dist.sample(&mut rng);
         particle.state.y += robot_dy + xi_dist.sample(&mut rng);
 
-        // Update weights
-        particle.w = likelihood(&robot_sensors, &particle.state, maze, sigma_epsilon);
+        // Update weights (accumulate, don't replace)
+        particle.w *= likelihood(&robot_sensors, &particle.state, maze, sigma_epsilon);
     });
 
     // Normalize weights

@@ -4,7 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-minifb = "0.28.0"
 rand = "0.10.0"
 rand_distr = "0.6.0"
 rayon = "1.11.0"
+raylib = { version = "5.5.1", features = [] }
+structopt = "0.3.26"
