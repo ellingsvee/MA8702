@@ -37,11 +37,22 @@ def get_matrices() -> tuple[Array, Array, Array]:
     return A, Q, R
 
 
+def h_func(state) -> Array:
+    E, N, vx, vy = state
+    h = jnp.array([jnp.arctan(E / N), jnp.arctan((40.0 - N) / (40.0 - E))])
+    return h
+
+
 def H_matrix(state) -> tuple[Array, Array]:
-    def h_func(state) -> tuple[Array, Array]:
-        E, N, vx, vy = state
-        h = jnp.array([jnp.arctan(E / N), jnp.arctan((40.0 - N) / (40.0 - E))])
+    def h_func_aux(state):
+        h = h_func(state)
         return h, h
 
-    H_jac, H = jacrev(h_func, has_aux=True)(state)
+    H_jac, H = jacrev(h_func_aux, has_aux=True)(state)
     return H, H_jac
+
+
+def initialize_particles() -> tuple[Array, Array]:
+    initial_state = jnp.array([10.0, 30.0, 10.0, -10.0])
+    P = jnp.diag(jnp.array([5.0, 5.0, 2.0, 2.0]) ** 2)
+    return initial_state, P

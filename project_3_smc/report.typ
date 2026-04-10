@@ -4,7 +4,7 @@
   title: [Sequential Monte Carlo],
   author: "Project 3 in MA8702 by Elling Svee",
   date: datetime.today(),
-  // bibliography: bibliography("refs.bib", style: "elsevier-harvard"),
+  bibliography: bibliography("refs.bib", style: "elsevier-harvard"),
   figure-index: (enabled: false),
   table-index: (enabled: false),
   listing-index: (enabled: false),
@@ -18,6 +18,8 @@
 )
 
 #set figure(gap: 0.1em)
+#let map_fig_width = 80%
+#let variances_fig_width = 90%
 
 = Setup
 In this project we consider three different filtering approaches for tracking a ship on the surface using two bearings-only observations. There are two sensors measuring angles to a vessel. One sensor is located in east,north coordinate $(0, 0)$, the other at coordinate $(40, 40)$ in km units.
@@ -84,30 +86,30 @@ The filtering algorithm is implemented in `extended_kalman.py`. See that I have 
 
 // #figure(
 //   image(
-//     "code/figures/filter_map.svg",
+//     "code/figures/filter_map.avg",
 //     width: 100%
 //   ),
 //   caption: [
 //   Filtering solution for the extended Kalman filter
 // ]
-// )<extended_kalman_solution>
+// )<extended_Kalman_solution>
 //
 // #figure(
 //   image(
-//     "code/figures/filter_variances.svg",
+//     "code/figures/filter_variances.avg",
 //     width: 100%
 //   ),
 //   caption: [
 //   Filtering variances for the extended Kalman filter
 // ]
-// )<extended_kalman_variances>
+// )<extended_Kalman_variances>
 
 #subpar.grid(
-  figure(image("code/figures/filter_map.svg"), caption: [
+  figure(image("code/figures/extended_kalman_filter_map.svg", width: map_fig_width), caption: [
     Filtering solution
   ]),
   <extended_kalman_solution>,
-  figure(image("code/figures/filter_variances.svg"), caption: [
+  figure(image("code/figures/extended_kalman_filter_variances.svg", width: variances_fig_width), caption: [
     Filtering variances
   ]),
   <extended_kalman_variances>,
@@ -122,5 +124,26 @@ The filtering algorithm is implemented in `extended_kalman.py`. See that I have 
 
 = Particle Filter
 
+Moving on, we implement a standard particle filter algorithm with $B = 10000$ particles. We use the state Markovian process model as proposal at each time step. I follow the steps outlined in Algorithm 5 from #cite(<speekenbrink_tutorial_2016>, form: "prose"), and set $c = 1$ to resample at every time-step. As opposed to the extended Kalman filter, we do not maintain a covariance matrix for the state estimate. The covariance is therefore computed as a weighted sample covariance. The implementation is in `particle.py`. @particle_solution and @particle_variances show the filtering solution and variances for the particle filter, respectively.
+
+
+
+
+#subpar.grid(
+  figure(image("code/figures/particle_filter_map.svg", width: map_fig_width), caption: [
+    Filtering solution
+  ]),
+  <particle_solution>,
+  figure(image("code/figures/particle_filter_variances.svg", width: variances_fig_width), caption: [
+    Filtering variances
+  ]),
+  <particle_variances>,
+  columns: auto,
+  caption: [Particle filter],
+  gap: 1.5em,
+)
+
 = Ensemble Kalman Filter
+
+Lastly, we implement an ensemble Kalman filter with $B = 1000$ particles. I follow the formulas from the basic formulation in the #link("https://en.wikipedia.org/wiki/Ensemble_Kalman_filter", "Ensemble Kalman filter") Wikipedia article.
 

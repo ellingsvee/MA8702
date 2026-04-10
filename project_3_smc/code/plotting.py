@@ -17,7 +17,9 @@ def _confidence_ellipse(mean, cov, ax, n_std=2.0, **kwargs):
     ax.add_patch(ellipse)
 
 
-def plot_filter_map(states: Array, covariances: Array, title: str = "Filter"):
+def plot_filter_map(
+    states: Array, covariances: Array, save_name: str = "filter_map.svg"
+):
     states = np.asarray(states)
     covariances = np.asarray(covariances)
 
@@ -29,7 +31,7 @@ def plot_filter_map(states: Array, covariances: Array, title: str = "Filter"):
     )
 
     # Plot confidence ellipses every 5th step
-    for i in range(0, len(states), 5):
+    for i in range(0, len(states), 1):
         _confidence_ellipse(
             states[i, :2],
             covariances[i, :2, :2],
@@ -55,11 +57,13 @@ def plot_filter_map(states: Array, covariances: Array, title: str = "Filter"):
 
     fig.tight_layout()
 
-    fig.savefig(SAVE_DIR / "filter_map.svg")
+    fig.savefig(SAVE_DIR / save_name)
     plt.close()
 
 
-def plot_filter_variances(states: Array, covariances: Array, title: str = "Filter"):
+def plot_filter_variances(
+    states: Array, covariances: Array, save_name: str = "filter_map.svg"
+):
     covariances = np.asarray(covariances)
     T = len(covariances)
     time = np.arange(T)
@@ -71,9 +75,9 @@ def plot_filter_variances(states: Array, covariances: Array, title: str = "Filte
     ax.plot(time, var_E, label="East")
     ax.plot(time, var_N, label="North")
     ax.set_xlabel("Time step")
-    ax.set_ylabel("Variance (km²)")
+    ax.set_ylabel(r"Variance (km$^2$)")
     ax.legend()
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
-    fig.savefig(SAVE_DIR / "filter_variances.svg")
+    fig.savefig(SAVE_DIR / save_name)
     plt.close()
