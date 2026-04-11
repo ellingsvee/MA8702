@@ -138,10 +138,10 @@ const WIDTH: i32 = 800;
 const HEIGHT: i32 = 600;
 const MAZE_COLS: usize = 10;
 const MAZE_ROWS: usize = 8;
-const DEFAULT_N_PARTICLES: usize = 500;
+const DEFAULT_N_PARTICLES: usize = 200;
 const SENSOR_NOISE: f64 = 80.0;
 const STATE_NOISE: f64 = 10.0;
-const C: f64 = 0.5;
+const C: f64 = 0.0;
 const DROPOUT: f64 = 0.1;
 
 pub fn run() {
