@@ -98,7 +98,7 @@ fn ellipse_point(r1: f32, r2: f32, cos_t: f32, sin_t: f32, angle: f32) -> (f32, 
 }
 
 /// Draw one bar per particle showing its importance weight.
-fn draw_weight_bars(d: &mut RaylibDrawHandle, particles: &[Particle]) {
+fn draw_weight_bars(d: &mut RaylibDrawHandle, particles: &[Particle], screen_w: i32, scale: f64) {
     if particles.is_empty() {
         return;
     }
@@ -108,11 +108,11 @@ fn draw_weight_bars(d: &mut RaylibDrawHandle, particles: &[Particle]) {
         return;
     }
 
-    // Layout: top-right corner
-    let plot_w: i32 = 200;
-    let plot_h: i32 = 90;
-    let margin: i32 = 10;
-    let x0 = WIDTH - plot_w - margin;
+    // Layout: top-right corner, scaled with resolution
+    let plot_w: i32 = (200.0 * scale) as i32;
+    let plot_h: i32 = (90.0 * scale) as i32;
+    let margin: i32 = (10.0 * scale) as i32;
+    let x0 = screen_w - plot_w - margin;
     let y0 = margin;
     let bar_w = (plot_w as f32 / particles.len() as f32).max(1.0);
 
@@ -134,37 +134,45 @@ fn draw_weight_bars(d: &mut RaylibDrawHandle, particles: &[Particle]) {
     }
 }
 
-const WIDTH: i32 = 800;
-const HEIGHT: i32 = 600;
 const MAZE_COLS: usize = 10;
 const MAZE_ROWS: usize = 8;
 const DEFAULT_N_PARTICLES: usize = 200;
 const SENSOR_NOISE: f64 = 80.0;
 const STATE_NOISE: f64 = 10.0;
-const C: f64 = 0.0;
-const DROPOUT: f64 = 0.1;
+const C: f64 = 0.5;
+const DROPOUT: f64 = 0.3;
 
 pub fn run() {
     let n_particles: usize = std::env::args()
         .nth(1)
         .and_then(|s| s.parse().ok())
         .unwrap_or(DEFAULT_N_PARTICLES);
+
+    // Init a small window first so we can query the monitor, then go fullscreen
     let (mut rl, thread) = raylib::init()
-        .size(WIDTH, HEIGHT)
+        .size(800, 600)
         .title("Particle Filter")
-        // .fullscreen()
         .vsync()
         .build();
 
+    let monitor = raylib::core::window::get_current_monitor();
+    let width = raylib::core::window::get_monitor_width(monitor);
+    let height = raylib::core::window::get_monitor_height(monitor);
+    rl.set_window_size(width, height);
+    rl.toggle_fullscreen();
+
     rl.set_target_fps(20);
+
+    // Scale factor relative to the original 800x600 design resolution
+    let scale = (width as f64 / 800.0).min(height as f64 / 600.0);
 
     let mut show_bars = true;
 
     let mut rng = rng();
 
     let maze = Maze::generate(
-        WIDTH as f64,
-        HEIGHT as f64,
+        width as f64,
+        height as f64,
         MAZE_COLS,
         MAZE_ROWS,
         DROPOUT,
@@ -172,8 +180,8 @@ pub fn run() {
     );
     let (start_x, start_y) = maze.random_cell_center(&mut rng);
 
-    let mut robot = vec![Robot::new(start_x, start_y)];
-    let mut particles = spawn_particles(n_particles, WIDTH as usize, HEIGHT as usize, &mut rng);
+    let mut robot = vec![Robot::new_scaled(start_x, start_y, scale)];
+    let mut particles = spawn_particles(n_particles, width as usize, height as usize, &mut rng);
 
     let parameters = Parameters {
         sigma_xi: STATE_NOISE,
@@ -184,8 +192,8 @@ pub fn run() {
         // Reset
         if rl.is_key_down(KEY_R) {
             let (start_x, start_y) = maze.random_cell_center(&mut rng);
-            robot[0] = Robot::new(start_x, start_y);
-            particles = spawn_particles(n_particles, WIDTH as usize, HEIGHT as usize, &mut rng);
+            robot[0] = Robot::new_scaled(start_x, start_y, scale);
+            particles = spawn_particles(n_particles, width as usize, height as usize, &mut rng);
         }
 
         // Kidnap: move robot to random location without re-spreading particles
@@ -203,7 +211,7 @@ pub fn run() {
 
         // Re-spread particles without moving the robot
         if rl.is_key_pressed(KEY_S) {
-            particles = spawn_particles(n_particles, WIDTH as usize, HEIGHT as usize, &mut rng);
+            particles = spawn_particles(n_particles, width as usize, height as usize, &mut rng);
         }
 
         let (dx, dy) = update_robot(&rl, &mut robot, &maze);
@@ -259,7 +267,7 @@ pub fn run() {
 
         // Draw particles
         for p in &particles {
-            let half = p.size() as f32;
+            let half = (p.size() * scale) as f32;
             d.draw_rectangle(
                 (p.state.x - half as f64) as i32,
                 (p.state.y - half as f64) as i32,
@@ -284,7 +292,7 @@ pub fn run() {
 
         // Draw weight bars
         if show_bars {
-            draw_weight_bars(&mut d, &particles);
+            draw_weight_bars(&mut d, &particles, width, scale);
         }
     }
 }

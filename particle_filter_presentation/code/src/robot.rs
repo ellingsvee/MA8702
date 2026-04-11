@@ -14,12 +14,12 @@ pub struct Robot {
 }
 
 impl Robot {
-    pub fn new(x: f64, y: f64) -> Self {
+    pub fn new_scaled(x: f64, y: f64, scale: f64) -> Self {
         Self {
             x,
             y,
-            v: 3.0,
-            size: 6.0,
+            v: 3.0 * scale,
+            size: 6.0 * scale,
             color: 0xFFFF0000,
             sensors: Sensors {
                 left: None,

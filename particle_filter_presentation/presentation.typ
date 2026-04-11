@@ -18,10 +18,10 @@
 ]
 
 
-== State space models (SSMs)
+== State-space models (SSMs)
 
 
-Observable time-series $z_(1:t)$ through a time-series of latent states $x_(0:t)$.
+Observable $z_(1:t)$ through a time-series of latent states $x_(0:t)$.
 
 #let nodes = ("A", "B", "C", "D", "E", "F", "G")
 #let edges = (
@@ -73,14 +73,12 @@ Observable time-series $z_(1:t)$ through a time-series of latent states $x_(0:t)
 
 Want to estimate $x_t$ given observations $z_(1:t)$.
 
-== State-space models (SSMs)
-
-Core assumptions:
-+ Each observation $z_t$ depends only on the current state $x_t$.
-  $
-    p(z_(1:T)|x_(0:T)) = product_(t=1)^T p(z_t|x_t).
-  $
-+ Latent states change over time according to a first-order Markov process.
+== Core assumptions
+1. Each observation $z_t$ only depend on current state $x_t$
+$
+  p(z_(1:T)|x_(0:T)) = product_(t=1)^T p(z_t|x_t).
+$
+2. Latent states evolve according to a first-order Markov process
 $
   p(x_(0:T)) = p(x_0) product_(t=1)^T p(x_t|x_(t-1)).
 $
@@ -102,11 +100,13 @@ In this case, the posterior $p(bold(x)_t|bold(z)_(1:t))$ is Gaussian and can be 
 = Application: Robot localization problem
 For fun I have built a simple program to simulate a robot moving around in a 2D environment.
 
-#subpar.grid(
-  figure(image("figures/autonomous_robot.jpeg")), figure(image("figures/robot_no_particles.png", width: 70%)),
-  columns: (1fr, 1fr),
-  label: <full>,
-)
+#figure(image("figures/autonomous_robot.jpeg", width: 60%))
+
+// #subpar.grid(
+//   figure(image("figures/autonomous_robot.jpeg")), figure(image("figures/robot_no_particles.png", width: 70%)),
+//   columns: (1fr, 1fr),
+//   label: <full>,
+// )
 
 
 ==
@@ -146,11 +146,9 @@ $
 where $eta_t$ and $epsilon_t$ has some non-Gaussian noise distribution.
 
 == Possible approaches
-/ Extended Kalman filter: Does not work well when the non-linearities are strong, and ssumes Gaussian noise.
+/ Extended Kalman filter: Does not work well when the non-linearities are strong, and assumes Gaussian noise.
 / Ensemble Kalman filter: Can handle non-linearities better, but still assumes Gaussian noise.
-/ Particle filter: Can handle non-linearities and non-Gaussian noise, but can be computationally expensive.
-/ Others: Any suggestions?
-
+/ Particle filter: Can handle non-linearities and non-Gaussian noise.
 
 = Theory
 
@@ -175,18 +173,9 @@ $
 
 Approximate the posterior as
 $
-  p(x_k|z_(1:k)) approx sum_(i=1)^N w_k^((i)) delta(x_k - x_k^((i)))
+  p(x_k|z_(1:k)) approx sum_(i=1)^N w_k^((i)) delta(x_k - x_k^((i))), quad EE[X_k|z_(1:k)] approx sum_(i=1)^N w_k^((i)) x_k^((i))
 $
 
-== Particles: More formally
-Can estimate expectations as
-$
-  EE[X_k|z_(1:k)] approx sum_(i=1)^N w_k^((i)) x_k^((i))
-$
-and the variance as
-$
-  "Var"[X_k|z_(1:k)] approx sum_(i=1)^N w_k^((i)) (x_k^((i)) - EE[X_k|z_(1:k)])(x_k^((i)) - EE[X_k|z_(1:k)])^T
-$
 
 == How to evolve particle filter over time?
 Kalman filter:
@@ -218,7 +207,7 @@ Particle filter:
 
 - Propagate each particle forward by our state transition model
 $
-  x_k^((i)) = f(x_(k-1)^((i)), u_k) + eta_k^((i))
+  x_k^((i)) = f(x_(k-1)^((i)), u_k) + eta_k
 $
 - Note that observation at time $k$ is not used!
 
@@ -230,7 +219,7 @@ $
 == _Importance sampling_
 Approximate $p(x)$ using samples from a different distribution $q(x)$
 $
-  EE[g(x)]_p = integral g(x) p(x) dif x & = integral g(x) p(x)/q(x) q(x) dif x approx 1/N sum_(i=1)^N g(x^((i))) w^((i))
+  EE_p [g(x)] = integral g(x) p(x) dif x & = integral g(x) p(x)/q(x) q(x) dif x approx 1/N sum_(i=1)^N g(x^((i))) w^((i))
 $
 where $x^((i)) tilde.op q(x)$ and $w^((i)) = p(x^((i)))/q(x^((i)))$.
 
@@ -244,7 +233,6 @@ $
 $
 However, this is not practical because the weights depend on all previous states.
 
-_Be aware that we here now deal with the $x_(0:k)|z_(1:k)$ instead of the marginal $x_(k)|z_(1:k)$!_
 
 
 == _Sequential importance sampling for SSMs_
@@ -255,7 +243,7 @@ _Be aware that we here now deal with the $x_(0:k)|z_(1:k)$ instead of the margin
   $
   and we can choose the proposal distribution so that
   $
-    q_k(x_(0:k)) = q_k (x_k|x_(0:k-1)) dot q_(k-1)(x_(0:k-1)).
+    q_k (x_(0:k)) = q_k (x_k|x_(0:k-1)) dot q_(k-1)(x_(0:k-1)).
   $
   Then, the weights can be computed recursively as
   $
@@ -273,12 +261,13 @@ which we can normalize to get the final weights
 $
   w_k^((i)) = tilde(w)_k^((i)) / (sum_(j=1)^N tilde(w)_k^((j)))
 $
-The set ${x_k^((i)), w_k^((i))}$ now approximates $p(x_k|z_(1:k))$.
+The set ${x_k^((i)), w_k^((i))}_(i=1)^(N)$ now approximates $p(x_k|z_(1:k))$.
 
 
-== Step 3: Resampling - _Focusing on what matters_
+== Weight degeneracy
 
-*Weight degeneracy:* Over time, a few particles may carry most of the total weight.
+
+Over time, a few particles may carry most of the total weight.
 
 Effective sample size:
 $
@@ -291,10 +280,9 @@ When
 
 == Step 3: Resampling - _Focusing on what matters_
 
-Solution:
-- If $N_"eff" \/ N <= c$:
-  - Resample according to weights: $P(i^(') = i) = w_k^((i))$.
-  - After resampling, set $w_k^((i)) = 1\/N$ for all particles.
+If $N_"eff" \/ N <= c$:
+- Resample locations $x_k^((i))$ according to weights: $P(i^(') = i) = w_k^((i))$.
+- After resampling, set $w_k^((i)) = 1\/N$ for all particles.
 The resampled set now is an unweighted approximation of the posterior!
 
 _Sample impoverishment: An issue with resampling is that we reduce the number of unique values present in set of particles._
