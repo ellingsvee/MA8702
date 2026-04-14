@@ -14,7 +14,11 @@
 
 #title-slide[
   = Particle Filters
-  // Based on _A tutorial on particle filters_ @speekenbrink_tutorial_2016
+  Based on _A tutorial on particle filters_ @speekenbrink_tutorial_2016
+
+  #figure(
+    image("figures/joke.png", width: 40%),
+  )
 ]
 
 
@@ -89,18 +93,20 @@ $
   bold(x)_t & = bold(upright(A)) bold(x)_(t-1) + bold(w)_t, quad & bold(w)_t & tilde.op cal(N)(bold(0), bold(upright(Q))) \
   bold(z)_t & = bold(upright(H))bold(x)_t + bold(v)_t, quad      & bold(v)_t & tilde.op cal(N)(bold(0), bold(upright(R)))
 $
-In this case, the posterior $p(bold(x)_t|bold(z)_(1:t))$ is Gaussian and can be computed in closed form using the Kalman filter.
+In this case, the posterior $p(bold(x)_t|bold(z)_(1:t))$ is Gaussian and
+computed analytically in closed form via recursive updates (Kalman filter).
 
-*But...how to handle non-linear and/or non-Gaussian SSMs?*
+*But...what about non-linear and/or non-Gaussian SSMs?*
 
 
 
 
 
 = Application: Robot localization problem
-For fun I have built a simple program to simulate a robot moving around in a 2D environment.
+// For fun I have built a simple program to simulate a robot moving around in a 2D environment.
+//
 
-#figure(image("figures/autonomous_robot.jpeg", width: 60%))
+// #figure(image("figures/autonomous_robot.jpeg", width: 60%))
 
 // #subpar.grid(
 //   figure(image("figures/autonomous_robot.jpeg")), figure(image("figures/robot_no_particles.png", width: 70%)),
@@ -109,15 +115,22 @@ For fun I have built a simple program to simulate a robot moving around in a 2D 
 // )
 
 
+Estimate the robot position (state) given movement commands and sensor measurements (observations).
+#subpar.grid(
+  figure(image("figures/autonomous_robot.jpeg", width: 100%)), figure(image("figures/floor_plan.png", width: 80%)),
+
+  columns: (auto, auto),
+)
+
 ==
 
-- Robot knows what the map looks like, but not where it is on the map.
-- Robot can move, but its movements are also noisy.
-- Robot has sensors that can measure the distance to nearby walls, but these measurements are noisy.
-
+// - Robot can move, but its movements are also noisy.
+// - Robot has sensors that can measure the distance to nearby walls, but these measurements are noisy.
+//
+The robot has two main flaws:
 #subpar.grid(
   figure(image("figures/robot_with_movement_errors.svg", width: 80%), caption: [
-    Movement of sensor can be noisy.
+    Movement can be noisy.
   ]),
   <a>,
 
@@ -129,6 +142,9 @@ For fun I have built a simple program to simulate a robot moving around in a 2D 
   columns: (1fr, 1fr),
   label: <full>,
 )
+
+Note that robot knows what the map looks like, but not where it is on the map.
+
 
 == Let us formalize the
 Up to time $t$:
@@ -143,7 +159,7 @@ and
 $
   z_t = g(x_t) + epsilon_t
 $
-where $eta_t$ and $epsilon_t$ has some non-Gaussian noise distribution.
+where $eta_t$ and $epsilon_t$ are non-Gaussian noise distributions.
 
 == Possible approaches
 / Extended Kalman filter: Does not work well when the non-linearities are strong, and assumes Gaussian noise.
@@ -156,13 +172,13 @@ where $eta_t$ and $epsilon_t$ has some non-Gaussian noise distribution.
 #subpar.grid(
   figure(image("figures/multivariate.png", width: 110%)),
   figure(image("figures/toy.jpg", width: 85%)),
-  figure(image("figures/particles_in_maze.png", width: 100%)),
+  figure(image("figures/2d_hist.png", width: 130%)),
 
   columns: (auto, auto, auto),
 )
 
 == Particles: Probability as a Histogram in Motion
-_Each particle is a tiny “grain of probability”, and the collection as a whole shifts and reshapes over time. When new evidence arrives, we adjust the weights of these grains so that the cloud of particles continues to approximate the true probability distribution._ (CITE)
+_Each particle is a tiny “grain of probability”, and the collection as a whole shifts and reshapes over time. When new evidence arrives, we adjust the weights of these grains so that the cloud of particles continues to approximate the true probability distribution._ @dhayalkar_particle_2025
 
 == Particles: More formally
 
@@ -173,7 +189,7 @@ $
 
 Approximate the posterior as
 $
-  p(x_k|z_(1:k)) approx sum_(i=1)^N w_k^((i)) delta(x_k - x_k^((i))), quad EE[X_k|z_(1:k)] approx sum_(i=1)^N w_k^((i)) x_k^((i))
+  p(x_k|z_(1:k)) approx sum_(i=1)^N w_k^((i)) delta(x_k - x_k^((i))), quad "Mean" hat(x)_k = sum_(i=1)^N w_k^((i)) x_k^((i))
 $
 
 
@@ -201,6 +217,7 @@ Particle filter:
     edge("u,ll,d", "--|>"),
   ),
 )
+See #link("https://raw.githubusercontent.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python/04b2bea802321086effbd99402fc13c893d11110/animations/particle_filter_anim.gif", "this animation.")
 
 == Step 1: Predict - _Carry our beliefs forward_
 - At time $k-1$ we have particles ${x_(k-1)^((i)), w_(k-1)^((i))}_(i=1)^N$ approximating $p(x_(k-1)|z_(1:k-1))$.
@@ -283,19 +300,24 @@ When
 If $N_"eff" \/ N <= c$:
 - Resample locations $x_k^((i))$ according to weights: $P(i^(') = i) = w_k^((i))$.
 - After resampling, set $w_k^((i)) = 1\/N$ for all particles.
-The resampled set now is an unweighted approximation of the posterior!
+The resampled set now is an "unweighted" approximation of the posterior.
 
-_Sample impoverishment: An issue with resampling is that we reduce the number of unique values present in set of particles._
+_Sample impoverishment: An issue with resampling is that we reduce the number of unique locations present in set of particles._
 
 
 == Full algorithm
 
-For $k=1$ to $T$:
 + *Predict:* Move particles according to state transition model.
-+ *Weight:* Compare predicted measurements with the observation.
++ *Weight:* Correct estimate by comparing prediction with observation.
 + *Resample:* If necessary, resample/regenerate particles to prevent degeneracy.
 
-Let us finally apply this to our robot localization problem!
+#figure(
+  image("figures/schematic.png", width: 70%),
+)
+
+// Let us play around a bit with our robot localization problem!
+
+= That was it. Thank you!
 
 // == Briefly: Further issues and extensions
 //
@@ -303,10 +325,8 @@ Let us finally apply this to our robot localization problem!
 // - *Inferring time-invariant (static) parameters*
 // - Rao-Blackwellized particle filters
 
-= Thank you!
-
-// ==
-// #text(size: 15pt)[
-//   #bibliography("refs.bib", style: "elsevier-harvard")
-// ]
+==
+#text(size: 15pt)[
+  #bibliography("refs.bib", style: "elsevier-harvard")
+]
 
