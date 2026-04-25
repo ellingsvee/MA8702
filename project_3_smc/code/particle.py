@@ -1,8 +1,9 @@
+from jax import jit, lax
 import jax.random as jr
 import jax.numpy as jnp
 from jax.scipy.stats import multivariate_normal
 from utils import get_matrices, initialize, load_sensor_data, h_func
-from plotting import plot_filter_map, plot_filter_variances
+from plotting import plot_filter_map
 
 
 def particle_filter(sensor_data, B: int = 10_000, SEED: int = 0):
@@ -11,26 +12,22 @@ def particle_filter(sensor_data, B: int = 10_000, SEED: int = 0):
     A, Q, R = get_matrices()
 
     # Intialize particles
-    initial_state, P0 = initialize()
+    X_init, P0 = initialize()
     key, subkey = jr.split(key)
-    particles = jr.multivariate_normal(subkey, initial_state, P0, shape=(B,))  # (B, 4)
-    weights = jnp.ones(B) / B
+    particles_init = jr.multivariate_normal(subkey, X_init, P0, shape=(B,))  # (B, 4)
+    weights_init = jnp.ones(B) / B
 
     states = []
     covariances = []
 
-    # Initial estimates
-    mean = jnp.average(particles, axis=0, weights=weights)
-    diff = particles - mean
-    cov = jnp.einsum("i,ij,ik->jk", weights, diff, diff)
-    states.append(mean)
-    covariances.append(cov)
+    @jit
+    def step_fn(carry, measurement):
+        particles, weights, loop_key = carry
 
-    for measurement in sensor_data:
         # Propagate
-        key, subkey = jr.split(key)
+        loop_key, predict_key, update_key = jr.split(loop_key, 3)
         means = jnp.einsum("ij,bj->bi", A, particles)  # (B, 4)
-        noise = jr.multivariate_normal(subkey, jnp.zeros(4), Q, shape=(B,))
+        noise = jr.multivariate_normal(predict_key, jnp.zeros(4), Q, shape=(B,))
         particles = means + noise
 
         # Reweight
@@ -46,19 +43,23 @@ def particle_filter(sensor_data, B: int = 10_000, SEED: int = 0):
         mean = jnp.average(particles, axis=0, weights=weights)
         diff = particles - mean
         cov = jnp.einsum("i,ij,ik->jk", weights, diff, diff)
-        states.append(mean)
-        covariances.append(cov)
+        # states.append(mean)
+        # covariances.append(cov)
 
         # Resample (currently to this at every time step)
-        key, subkey = jr.split(key)
         cumsum = jnp.cumsum(weights)
-        u = (jr.uniform(subkey) + jnp.arange(B)) / B
+        u = (jr.uniform(update_key) + jnp.arange(B)) / B
         indices = jnp.searchsorted(cumsum, u)
         particles = particles[indices]
         weights = jnp.ones(B) / B
 
-    states = jnp.stack(states)
-    covariances = jnp.stack(covariances)
+        return (particles, weights, loop_key), (mean, cov)
+
+    # Iterate over sensor data
+    _, (states, covariances) = lax.scan(
+        step_fn, (particles_init, weights_init, key), sensor_data
+    )
+
     return states, covariances
 
 
@@ -66,9 +67,9 @@ def main():
     sensor_data = load_sensor_data()
     states, covariances = particle_filter(sensor_data)
     plot_filter_map(states, covariances, save_name="particle_filter_map.svg")
-    plot_filter_variances(
-        states, covariances, save_name="particle_filter_variances.svg"
-    )
+
+    states, covariances = particle_filter(sensor_data, B=100)
+    plot_filter_map(states, covariances, save_name="particle_filter_map_B100.svg")
 
 
 if __name__ == "__main__":

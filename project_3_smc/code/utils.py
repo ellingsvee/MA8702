@@ -13,7 +13,7 @@ def load_sensor_data(folder_path: PathLike = Path("sensor_data")) -> Array:
 
 def initialize() -> tuple[Array, Array]:
     initial_state = jnp.array([10.0, 30.0, 10.0, -10.0])
-    P = jnp.diag(jnp.array([5.0, 5.0, 2.0, 2.0]) ** 2)
+    P = jnp.diag(jnp.array([10.0, 10.0, 5.0, 5.0]) ** 2)
     return initial_state, P
 
 
